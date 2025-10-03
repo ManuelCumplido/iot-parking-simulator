@@ -1,0 +1,10 @@
+version = 0.1
+
+[rds-dev.deploy.parameters]
+stack_name = "rds-parking-stack"
+template_file = "rds-parking-stack.yaml"
+region = "us-east-1"
+s3_bucket = "iot-parking-infra-artifacts-dev"
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = "EnvironmentKey=\"dev\" DBPassword=\"Test1234\""
+confirm_changeset = true

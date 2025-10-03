@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: IoT Core stack for Parking Simulator
+
+Parameters:
+  EnvironmentKey:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+  ## IoT Thing
+  ParkingThing:
+    Type: AWS::IoT::Thing
+    Properties:
+      ThingName: !Sub ParkingThing-${EnvironmentKey}
+      AttributePayload:
+        Attributes:
+          project: iot-parking
+          environment: !Ref EnvironmentKey
+
+  ## IoT Policy
+  ParkingIoTPolicy:
+    Type: AWS::IoT::Policy
+    Properties:
+      PolicyName: !Sub ParkingPolicy-${EnvironmentKey}
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - iot:Connect
+              - iot:Publish
+              - iot:Subscribe
+              - iot:Receive
+            Resource: "*"
+
+  ## Certificate
+  ParkingIoTCertificate:
+    Type: AWS::IoT::Certificate
+    Properties:
+      Status: ACTIVE
+      CertificateMode: DEFAULT
+    DeletionPolicy: Retain
+
+  ## Attach policy to cert
+  IoTPolicyAttachment:
+    Type: AWS::IoT::PolicyPrincipalAttachment
+    Properties:
+      PolicyName: !Ref ParkingIoTPolicy
+      Principal: !GetAtt ParkingIoTCertificate.Arn
+
+  ## Attach cert to Thing
+  IoTThingCertAttachment:
+    Type: AWS::IoT::ThingPrincipalAttachment
+    Properties:
+      ThingName: !Ref ParkingThing
+      Principal: !GetAtt ParkingIoTCertificate.Arn
+
+  ## IoT Rule (no Lambda here, just placeholder action reference)
+  ParkingIoTRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: !Sub parkingStatusRule-${EnvironmentKey}
+      TopicRulePayload:
+        Sql: "SELECT * FROM 'parking/+/status'"
+        AwsIotSqlVersion: "2016-03-23"
+        Actions:
+          - Lambda:
+            FunctionArn: 
+              Fn::ImportValue: !Sub IoTIngestionLambdaArn-${EnvironmentKey}
+        RuleDisabled: false
+
+Outputs:
+  ThingName:
+    Value: !Ref ParkingThing
+  PolicyName:
+    Value: !Ref ParkingIoTPolicy
+  CertificateArn:
+    Value: !GetAtt ParkingIoTCertificate.Arn
+  IoTRuleArn:
+    Value: !GetAtt ParkingIoTRule.Arn
