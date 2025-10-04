@@ -83,7 +83,6 @@ Resources:
         Actions:
           - Lambda:
               FunctionArn: !GetAtt IoTIngestionFunction.Arn
-      RuleDisabled: false
 
   ## Permission for IoT Core to invoke the Lambda
   IoTInvokeLambdaPermission:
