@@ -180,6 +180,8 @@ Resources:
   # Store DB credentials + connection info in Secrets Manager
   DBCredentialsSecret:
     Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Name: !Sub parkingdb-db-credentials-${EnvironmentKey}
       Description: !Sub Credentials for PostgreSQL RDS ${EnvironmentKey}
