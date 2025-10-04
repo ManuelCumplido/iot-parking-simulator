@@ -26,10 +26,6 @@ Parameters:
     Type: String
     Default: postgres
     Description: Master username for RDS
-  DBPassword:
-    Type: String
-    NoEcho: true
-    Description: Master password for RDS
   MyIP: # Replace with your real IP (x.x.x.x/32) for external connections
     Type: String
     Default: 127.0.0.1/32

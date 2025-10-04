@@ -81,52 +81,57 @@ jobs:
 #        run: npm run test:integration
 #  
 #
-#  deploy:
-#    runs-on: ubuntu-latest
-#    needs: [validate, integration-tests]   # ensures deploy runs only if validation and integration-tests pass
-#    permissions:
-#      id-token: write   # Required for OIDC federation
-#      contents: read    # Required for actions/checkout
-#
-#    steps:
-#      - name: Checkout repo
-#        # This action clones the repository into the GitHub Actions runner.
-#        # Without this step, the workflow would not have access to your code (no package.json, no infrastructure/ folder, etc.).
-#        uses: actions/checkout@v4
-#        with:
-#          ref: ${{ github.event.pull_request.head.sha}}
-#
-#      # Setup AWS SAM CLI (recommended instead of pip)
-#      - name: Setup AWS SAM CLI
-#        uses: aws-actions/setup-sam@v2
-#        with:
-#          version: 1.* # Always install the latest stable available release in the 1.x series.
-#
-#      - name: Configure AWS credentials (OIDC)
-#        # This action configures temporary AWS credentials for the job
-#        # using GitHub's OpenID Connect (OIDC) provider and the specified IAM role.
-#        # No static AWS keys are required (more secure).
-#        uses: aws-actions/configure-aws-credentials@v4
-#        with:
-#          role-to-assume: arn:aws:iam::813858483616:role/OIDC-GitHubActions-Role
-#          aws-region: us-east-1
-#
-#      # Deploy IAM stack (using the iam-dev section from samconfig-dev.toml)
-#      - name: Deploy IAM stack
-#        working-directory: aws-backend
-#        run: sam deploy --config-file samconfig-dev.toml --config-env iam-dev --no-confirm-changeset --no-fail-on-empty-changeset
-#
-#      # Deploy DynamoDB stack (using the dynamodb-dev section from samconfig-dev.toml)
-#      - name: Deploy DynamoDB stack
-#        working-directory: aws-backend
-#        run: sam deploy --config-file samconfig-dev.toml --config-env dynamodb-dev --no-confirm-changeset --no-fail-on-empty-changeset
-#
-#      # Deploy Cognito stack (using the cognito-dev section from samconfig-dev.toml)
-#      - name: Deploy Cognito stack
-#        working-directory: aws-backend
-#        run: sam deploy --config-file samconfig-dev.toml --config-env cognito-dev --no-confirm-changeset --no-fail-on-empty-changeset
-#
-#      # Deploy API Gateway + Lambdas stack (separate config file inside api-gateway-lambdas folder)
-#      - name: Deploy API stack
-#        working-directory: aws-backend/infrastructure/api-gateway-lambdas
-#        run: sam deploy --config-file samconfig-dev.toml --config-env api-dev --no-confirm-changeset --no-fail-on-empty-changeset
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [validate] # , integration-tests]   # ensures deploy runs only if validation and integration-tests pass
+    permissions:
+      id-token: write   # Required for OIDC federation
+      contents: read    # Required for actions/checkout
+
+    steps:
+      - name: Checkout repo
+        # This action clones the repository into the GitHub Actions runner.
+        # Without this step, the workflow would not have access to your code (no package.json, no infrastructure/ folder, etc.).
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha}}
+
+      # Setup AWS SAM CLI (recommended instead of pip)
+      - name: Setup AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          version: 1.* # Always install the latest stable available release in the 1.x series.
+
+      - name: Configure AWS credentials (OIDC)
+        # This action configures temporary AWS credentials for the job
+        # using GitHub's OpenID Connect (OIDC) provider and the specified IAM role.
+        # No static AWS keys are required (more secure).
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::813858483616:role/OIDC-GitHubActions-Role
+          aws-region: us-east-1
+
+      # Deploy IAM stack (using the iam-dev section from samconfig-dev.toml)
+      - name: Deploy IAM stack
+        working-directory: aws-backend
+        run: sam deploy --config-file samconfig-dev.toml --config-env iam-dev --no-confirm-changeset --no-fail-on-empty-changeset
+      
+      # Deploy RDS stack (PostgreSQL / parking database)
+      - name: Deploy RDS stack
+        working-directory: aws-backend # aws-backend/infrastructure/database
+        run: sam deploy --config-file samconfig-dev.toml --config-env rds-dev --no-confirm-changeset --no-fail-on-empty-changeset
+
+      # Deploy IoT Core stack (things, policies, rules, shadows, topics)
+      - name: Deploy IoT stack
+        working-directory: aws-backend # aws-backend/infrastructure/iot
+        run: sam deploy --config-file samconfig-dev.toml --config-env iot-dev --no-confirm-changeset --no-fail-on-empty-changeset
+
+      # Deploy Lambdas
+      - name: Deploy Lambdas stack
+        working-directory: aws-backend
+        run: sam deploy --config-file samconfig-dev.toml --config-env api-dev --no-confirm-changeset --no-fail-on-empty-changeset
+
+      ## (Optional) Deploy Step Functions / EventBridge (for orchestration)
+      #- name: Deploy Orchestration stack
+      #  working-directory: aws-backend/infrastructure/orchestration
+      #  run: sam deploy --config-file samconfig-dev.toml --config-env orchestration-dev --no-confirm-changeset --no-fail-on-empty-changeset
