@@ -59,6 +59,8 @@ Resources:
   # Internet Gateway to allow outbound traffic from the VPC
   InternetGateway:
     Type: AWS::EC2::InternetGateway
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
 
   # Attach the Internet Gateway to the VPC
   AttachGateway:
@@ -70,6 +72,8 @@ Resources:
   # Public subnet 1 (us-east-1a)
   PublicSubnet1:
     Type: AWS::EC2::Subnet
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.1.0/24
@@ -85,6 +89,8 @@ Resources:
   # Public subnet 2 (us-east-1b)
   PublicSubnet2:
     Type: AWS::EC2::Subnet
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.2.0/24
@@ -100,12 +106,16 @@ Resources:
   # Route table for the public subnet
   RouteTable:
     Type: AWS::EC2::RouteTable
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       VpcId: !Ref VPC # This route table belongs to the VPC (10.0.0.0/16)
 
   # Default route to Internet for the public subnet
   PublicRoute:
     Type: AWS::EC2::Route
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       RouteTableId: !Ref RouteTable
       DestinationCidrBlock: 0.0.0.0/0   # All traffic to anywhere (Internet)
@@ -114,12 +124,16 @@ Resources:
   # Link the subnet with the route table
   SubnetRouteTableAssociation1:
     Type: AWS::EC2::SubnetRouteTableAssociation
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       SubnetId: !Ref PublicSubnet1     # Subnet 10.0.1.0/24
       RouteTableId: !Ref RouteTable   # Attach it to the public route table
 
   SubnetRouteTableAssociation2:
     Type: AWS::EC2::SubnetRouteTableAssociation
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       SubnetId: !Ref PublicSubnet2     # Subnet 10.0.1.0/24
       RouteTableId: !Ref RouteTable   # Attach it to the public route table
