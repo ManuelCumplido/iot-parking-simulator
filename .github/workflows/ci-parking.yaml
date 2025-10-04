@@ -111,6 +111,15 @@ jobs:
           role-to-assume: arn:aws:iam::813858483616:role/OIDC-GitHubActions-Role
           aws-region: us-east-1
 
+      # Install depencies for the layers
+      - name: Install dependencies for node-pg layer
+        working-directory: aws-backend/infrastructure/layers/node-pg/nodejs
+        run: npm install
+
+      - name: Install dependencies for aws-sdk-v3 layer
+        working-directory: aws-backend/infrastructure/layers/aws-sdk-v3/nodejs
+        run: npm install
+
       # Deploy IAM stack (using the iam-dev section from samconfig-dev.toml)
       - name: Deploy IAM stack
         working-directory: aws-backend
