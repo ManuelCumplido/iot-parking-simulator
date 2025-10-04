@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: IoT Core stack for Parking Simulator
+Description: IoT Core + Ingestion Lambda stack for Parking Simulator
 
 Parameters:
   EnvironmentKey:
@@ -60,20 +60,39 @@ Resources:
       ThingName: !Ref ParkingThing
       Principal: !GetAtt ParkingIoTCertificate.Arn
 
-  ## IoT Rule (no Lambda here, just placeholder action reference)
+  ## Lambda for IoT ingestion
+  IoTIngestionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub iot-ingestion-${EnvironmentKey}
+      CodeUri: ../../src/iot-ingestion/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 3
+      Role:
+        Fn::ImportValue: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
+      
+  ## IoT Rule (directly invokes the Lambda)
   ParkingIoTRule:
     Type: AWS::IoT::TopicRule
     Properties:
-      RuleName: !Sub parkingStatusRule${EnvironmentKey}
+      RuleName: !Sub parkingStatusRule-${EnvironmentKey}
       TopicRulePayload:
         Sql: "SELECT * FROM 'parking/+/status'"
         AwsIotSqlVersion: "2016-03-23"
         Actions:
           - Lambda:
-              FunctionArn:
-                Fn::ImportValue:
-                  Fn::Sub: "IoTIngestionLambdaArn-${EnvironmentKey}"
-        RuleDisabled: false
+              FunctionArn: !GetAtt IoTIngestionFunction.Arn
+      RuleDisabled: false
+
+  ## Permission for IoT Core to invoke the Lambda
+  IoTInvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref IoTIngestionFunction
+      Principal: iot.amazonaws.com
+      SourceArn: !GetAtt ParkingIoTRule.Arn
 
 Outputs:
   ThingName:
@@ -84,3 +103,5 @@ Outputs:
     Value: !GetAtt ParkingIoTCertificate.Arn
   IoTRuleArn:
     Value: !GetAtt ParkingIoTRule.Arn
+  IoTIngestionLambdaArn:
+    Value: !GetAtt IoTIngestionFunction.Arn
