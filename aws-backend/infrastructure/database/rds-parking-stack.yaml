@@ -207,6 +207,33 @@ Resources:
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
 
+  DatabaseInitFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub parkingdb-init-${EnvironmentKey}
+      CodeUri: ../../src/database-init/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 8
+      Description: Initialize database tables for IoT Parking
+      Policies:
+        - AWSSecretsManagerReadWrite # To read DB credentials
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          DB_SECRET_ARN: !Ref DBCredentialsSecret
+          DB_HOST: !GetAtt RDSInstance.Endpoint.Address
+          DB_NAME: !Sub ${DBName}_${EnvironmentKey}
+
+  # This resource runs the Lambda automatically once RDS is ready
+  DatabaseInitCustomResource:
+    Type: Custom::RunSQL
+    Properties:
+      ServiceToken: !GetAtt DatabaseInitFunction.Arn
+      DBSecretARN: !Ref DBCredentialsSecret
+      DBHost: !GetAtt RDSInstance.Endpoint.Address
+      DBName: !Sub ${DBName}_${EnvironmentKey}
+
 Outputs:
   RDSEndpoint:
     Description: Endpoint of the RDS instance
