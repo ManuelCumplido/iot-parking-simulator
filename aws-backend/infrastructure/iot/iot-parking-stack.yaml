@@ -47,6 +47,15 @@ Resources:
       CompatibleRuntimes:
         - nodejs20.x
 
+  AwsSdkV3Layer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub aws-sdk-v3-layer-${EnvironmentKey}
+      Description: AWS SDK v3 clients for Lambda
+      ContentUri: ../../infrastructure/layers/aws-sdk-v3
+      CompatibleRuntimes:
+        - nodejs20.x
+
   ## Lambda for IoT ingestion
   IoTIngestionFunction:
     Type: AWS::Serverless::Function
@@ -60,6 +69,7 @@ Resources:
         Fn::ImportValue: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
       Layers:
         - !Ref NodePgLayer
+        - !Ref AwsSdkV3Layer
       Environment:
         Variables:
           DB_HOST:
