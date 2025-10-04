@@ -38,27 +38,6 @@ Resources:
               - iot:Receive
             Resource: "*"
 
-  ## Certificate
-  ParkingIoTCertificate:
-    Type: AWS::IoT::Certificate
-    Properties:
-      Status: ACTIVE
-      CertificateMode: DEFAULT
-    DeletionPolicy: Retain
-
-  ## Attach policy to cert
-  IoTPolicyAttachment:
-    Type: AWS::IoT::PolicyPrincipalAttachment
-    Properties:
-      PolicyName: !Ref ParkingIoTPolicy
-      Principal: !GetAtt ParkingIoTCertificate.Arn
-
-  ## Attach cert to Thing
-  IoTThingCertAttachment:
-    Type: AWS::IoT::ThingPrincipalAttachment
-    Properties:
-      ThingName: !Ref ParkingThing
-      Principal: !GetAtt ParkingIoTCertificate.Arn
 
   ## Lambda for IoT ingestion
   IoTIngestionFunction:
@@ -98,8 +77,6 @@ Outputs:
     Value: !Ref ParkingThing
   PolicyName:
     Value: !Ref ParkingIoTPolicy
-  CertificateArn:
-    Value: !GetAtt ParkingIoTCertificate.Arn
   IoTRuleArn:
     Value: !GetAtt ParkingIoTRule.Arn
   IoTIngestionLambdaArn:
