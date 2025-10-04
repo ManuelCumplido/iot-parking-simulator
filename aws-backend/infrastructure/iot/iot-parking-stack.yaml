@@ -46,7 +46,6 @@ Resources:
       ContentUri: ../../infrastructure/layers/node-pg
       CompatibleRuntimes:
         - nodejs20.x
-      RetentionPolicy: Retain
 
   ## Lambda for IoT ingestion
   IoTIngestionFunction:
