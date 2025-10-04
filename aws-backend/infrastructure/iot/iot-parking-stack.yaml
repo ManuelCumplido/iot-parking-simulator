@@ -70,7 +70,9 @@ Resources:
         AwsIotSqlVersion: "2016-03-23"
         Actions:
           - Lambda:
-              FunctionArn: !ImportValue IoTIngestionLambdaArn-${EnvironmentKey}
+              FunctionArn:
+                Fn::ImportValue:
+                  Fn::Sub: "IoTIngestionLambdaArn-${EnvironmentKey}"
         RuleDisabled: false
 
 Outputs:
