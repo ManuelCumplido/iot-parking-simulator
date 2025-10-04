@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: IAM roles for Parking Simulator
+
+Parameters:
+  EnvironmentKey:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+  ## Role for IoT Ingestion Lambda
+  IoTIngestionLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole # logs
+      Policies:
+        - PolicyName: SecretsAndRDSAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - rds-data:ExecuteStatement
+                  - rds-data:BatchExecuteStatement
+                Resource: "*"
+
+Outputs:
+  IoTIngestionLambdaRoleArn:
+    Description: ARN of the IAM Role for IoT ingestion Lambda
+    Value: !GetAtt IoTIngestionLambdaRole.Arn
+    Export:
+      Name: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}

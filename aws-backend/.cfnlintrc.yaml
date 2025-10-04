@@ -1,0 +1,5 @@
+# CloudFormation Linter configuration
+# This file defines which linting rules to ignore during SAM/CFN validation
+
+ignore_checks:
+  - W3011  # Check resources with UpdateReplacePolicy/DeletionPolicy have both

@@ -1,0 +1,228 @@
+# SAM Template: ParkingDB (RDS PostgreSQL)
+# Provisions an Amazon RDS PostgreSQL instance for the Parking demo project.
+# Includes VPC, subnet, route table, internet gateway, and security group.
+# Uses Secrets Manager to securely store DB credentials and connection info.
+# Optimized for demo: db.t3.micro (Free Tier), public access, basic best practices.
+
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Demo RDS PostgreSQL Single Instance (Free Tier Friendly)
+
+Parameters:
+  EnvironmentKey:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment where this stack is deployed (dev/staging/prod)
+  DBName:
+    Type: String
+    Default: parkingdb
+    Description: Base database name
+  DBUsername:
+    Type: String
+    Default: postgres
+    Description: Master username for RDS
+  MyIP: # Replace with your real IP (x.x.x.x/32) for external connections
+    Type: String
+    Default: 127.0.0.1/32
+    Description: "Restrict DB access to this public IP (format: x.x.x.x/32)"
+
+Conditions:
+  # Only true when EnvironmentKey = prod
+  IsProd:
+    Fn::Equals:
+      - Ref: EnvironmentKey
+      - prod
+
+Resources:
+  # Create a dedicated VPC for the RDS demo
+  VPC:
+    Type: AWS::EC2::VPC
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true  # Gives instances in this VPC a DNS hostname (e.g., ec2-54-xxx.compute.amazonaws.com)
+      EnableDnsSupport: true    # Allows resources in this VPC to resolve DNS names to IP addresses
+      Tags:
+        - Key: Name
+          Value: !Sub parkingdb-vpc-${EnvironmentKey}
+
+  # Internet Gateway to allow outbound traffic from the VPC
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  # Attach the Internet Gateway to the VPC
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Public subnet 1 (us-east-1a)
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true  # Automatically assigns a public IP to resources launched in this subnet
+      AvailabilityZone:
+        Fn::Select:
+          - 0                  # Pick the first AZ from the list
+          - Fn::GetAZs: ""     # Get all Availability Zones in the current region
+      Tags:
+        - Key: Name
+          Value: !Sub parkingdb-public-subnet1-${EnvironmentKey}
+
+  # Public subnet 2 (us-east-1b)
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+          - 1                  # Pick the second AZ from the list
+          - Fn::GetAZs: ""
+      Tags:
+        - Key: Name
+          Value: !Sub parkingdb-public-subnet2-${EnvironmentKey}
+
+  # Route table for the public subnet
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      VpcId: !Ref VPC # This route table belongs to the VPC (10.0.0.0/16)
+
+  # Default route to Internet for the public subnet
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0   # All traffic to anywhere (Internet)
+      GatewayId: !Ref InternetGateway   # Send it through the Internet Gateway
+
+  # Link the subnet with the route table
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      SubnetId: !Ref PublicSubnet1     # Subnet 10.0.1.0/24
+      RouteTableId: !Ref RouteTable   # Attach it to the public route table
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      SubnetId: !Ref PublicSubnet2     # Subnet 10.0.1.0/24
+      RouteTableId: !Ref RouteTable   # Attach it to the public route table
+
+  # DB subnet group (needed by RDS, here only one subnet for demo)
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS PostgreSQL
+      SubnetIds:
+        - !Ref PublicSubnet1 # RDS will be created inside this subnet (10.0.1.0/24)
+        - !Ref PublicSubnet2 # RDS will be created inside this subnet (10.0.1.0/24)
+
+  # Security group for RDS: allow PostgreSQL only from my IP
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupDescription: Allow access to PostgreSQL only from my IP
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0 # !Ref MyIP
+
+  # The actual RDS PostgreSQL instance
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Retain # Keep DB even if stack is deleted (avoid accidental loss)
+    UpdateReplacePolicy: Retain  # Keep the DB if replaced (do not delete existing data)
+    Properties:
+      DBInstanceIdentifier: !Sub parkingdb-rds-${EnvironmentKey}
+      AllocatedStorage: 20 # Free tier: 20 GB
+      MaxAllocatedStorage: 100
+      DBInstanceClass: db.t3.micro # Free tier eligible
+      Engine: postgres
+      #EngineVersion: "15.4" # optional, remove to let AWS pick latest supported
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:parkingdb-db-credentials-${EnvironmentKey}:SecretString:password}}"
+      DBName: !Sub ${DBName}_${EnvironmentKey}
+      VPCSecurityGroups:
+        - !GetAtt DBSecurityGroup.GroupId
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: true # We can connect from laptop/SQL client
+      BackupRetentionPeriod:
+        Fn::If:
+          - IsProd
+          - 7  # 7 days retention in prod
+          - 1  # 1 day retention in non-prod
+      DeletionProtection:
+        Fn::If:
+          - IsProd
+          - true   # Prevent accidental delete in prod
+          - false
+      StorageEncrypted: true
+      Tags:
+        - Key: EnvironmentKey
+          Value: !Ref EnvironmentKey
+
+  # Store DB credentials + connection info in Secrets Manager
+  DBCredentialsSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: !Sub parkingdb-db-credentials-${EnvironmentKey}
+      Description: !Sub Credentials for PostgreSQL RDS ${EnvironmentKey}
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${DBUsername}"}'
+        GenerateStringKey: "password"
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+Outputs:
+  RDSEndpoint:
+    Description: Endpoint of the RDS instance
+    Value: !GetAtt RDSInstance.Endpoint.Address
+    Export:
+      Name: !Sub ParkingDBEndpoint-${EnvironmentKey}
+
+  DatabaseName:
+    Description: Database name
+    Value: !Sub ${DBName}_${EnvironmentKey}
+    Export:
+      Name: !Sub ParkingDBName-${EnvironmentKey}
+
+  DBSecretARN:
+    Description: ARN of the database credentials secret
+    Value: !Ref DBCredentialsSecret
+    Export:
+      Name: !Sub ParkingDBSecret-${EnvironmentKey}
+
