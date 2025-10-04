@@ -50,6 +50,8 @@ Resources:
       CidrBlock: 10.0.0.0/16
       EnableDnsHostnames: true  # Gives instances in this VPC a DNS hostname (e.g., ec2-54-xxx.compute.amazonaws.com)
       EnableDnsSupport: true    # Allows resources in this VPC to resolve DNS names to IP addresses
+      DeletionPolicy: Retain
+      UpdateReplacePolicy: Retain
       Tags:
         - Key: Name
           Value: !Sub parkingdb-vpc-${EnvironmentKey}
@@ -125,8 +127,8 @@ Resources:
   # DB subnet group (needed by RDS, here only one subnet for demo)
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
-    #DeletionPolicy: Retain
-    #UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       DBSubnetGroupDescription: Subnet group for RDS PostgreSQL
       SubnetIds:
@@ -139,6 +141,8 @@ Resources:
     Properties:
       GroupDescription: Allow access to PostgreSQL only from my IP
       VpcId: !Ref VPC
+      DeletionPolicy: Retain
+      UpdateReplacePolicy: Retain
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 5432
@@ -148,8 +152,8 @@ Resources:
   # The actual RDS PostgreSQL instance
   RDSInstance:
     Type: AWS::RDS::DBInstance
-    #DeletionPolicy: Retain # Keep DB even if stack is deleted (avoid accidental loss)
-    #UpdateReplacePolicy: Retain  # Keep the DB if replaced (do not delete existing data)
+    DeletionPolicy: Retain # Keep DB even if stack is deleted (avoid accidental loss)
+    UpdateReplacePolicy: Retain  # Keep the DB if replaced (do not delete existing data)
     Properties:
       DBInstanceIdentifier: !Sub parkingdb-rds-${EnvironmentKey}
       AllocatedStorage: 20 # Free tier: 20 GB
@@ -182,8 +186,8 @@ Resources:
   # Store DB credentials + connection info in Secrets Manager
   DBCredentialsSecret:
     Type: AWS::SecretsManager::Secret
-    #DeletionPolicy: Retain
-    #UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Name: !Sub parkingdb-db-credentials-${EnvironmentKey}
       Description: !Sub Credentials for PostgreSQL RDS ${EnvironmentKey}
