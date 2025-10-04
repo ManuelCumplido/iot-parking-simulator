@@ -217,8 +217,8 @@ Resources:
       Timeout: 8
       Description: Initialize database tables for IoT Parking
       Policies:
-        - AWSSecretsManagerReadWrite # To read DB credentials
-        - AWSLambdaBasicExecutionRole
+        - PolicyName: AWSSecretsManagerReadWrite # To read DB credentials
+        - PolicyName: AWSLambdaBasicExecutionRole 
       Environment:
         Variables:
           DB_SECRET_ARN: !Ref DBCredentialsSecret
