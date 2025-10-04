@@ -158,7 +158,7 @@ Resources:
       Engine: postgres
       #EngineVersion: "15.4" # optional, remove to let AWS pick latest supported
       MasterUsername: !Ref DBUsername
-      MasterUserPassword: !Ref DBPassword
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:parkingdb-db-credentials-${EnvironmentKey}:SecretString:password}}"
       DBName: !Sub ${DBName}_${EnvironmentKey}
       VPCSecurityGroups:
         - !GetAtt DBSecurityGroup.GroupId
@@ -187,15 +187,11 @@ Resources:
     Properties:
       Name: !Sub parkingdb-db-credentials-${EnvironmentKey}
       Description: !Sub Credentials for PostgreSQL RDS ${EnvironmentKey}
-      SecretString: !Sub |
-        {
-          "username":"${DBUsername}",
-          "password":"${DBPassword}",
-          "engine":"postgres",
-          "host":"${RDSInstance.Endpoint.Address}",
-          "port":"5432",
-          "dbname":"${DBName}${EnvironmentKey}"
-        }
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${DBUsername}"}'
+        GenerateStringKey: "password"
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
 
 Outputs:
   RDSEndpoint:

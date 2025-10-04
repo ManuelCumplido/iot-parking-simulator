@@ -2,6 +2,6 @@
 # This file defines which linting rules to ignore during SAM/CFN validation
 
 ignore_checks:
-  - E1029  # Sub is required if a variable is used in a string
-  - W1011  # Instead of REFing a parameter for a secret use a dynamic reference
-  - W3011  # Check resources with UpdateReplacePolicy/DeletionPolicy have both
+  #- E1029  # Sub is required if a variable is used in a string
+  #- W1011  # Instead of REFing a parameter for a secret use a dynamic reference
+  #- W3011  # Check resources with UpdateReplacePolicy/DeletionPolicy have both
