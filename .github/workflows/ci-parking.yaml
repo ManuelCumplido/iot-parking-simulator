@@ -55,10 +55,10 @@ jobs:
       - name: Validate all SAM templates
         working-directory: aws-backend
         run: |
-          sam validate --lint --template-file infrastructure/api-gateway-lambdas/api-lambdas-stack.yaml
-          sam validate --lint --template-file infrastructure/cognito/cognito-lockers-stack.yaml
-          sam validate --lint --template-file infrastructure/database/dynamodb-lockers-stack.yaml
-          sam validate --lint --template-file infrastructure/iam/iam-lockers-stack.yaml
+          sam validate --lint --template-file infrastructure/database/rds-parking-stack.yaml
+          sam validate --lint --template-file infrastructure/iam/iam-parking-stack.yaml
+          sam validate --lint --template-file infrastructure/iot/iot-parking-stack.yaml
+          sam validate --lint --template-file infrastructure/lambda/lambda-parking-stack.yaml
 
 #  integration-tests:
 #    runs-on: ubuntu-latest
