@@ -49,6 +49,14 @@ Resources:
       Timeout: 3
       Role:
         Fn::ImportValue: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
+      Environment:
+        Variables:
+          DB_HOST:
+            Fn::ImportValue: !Sub ParkingDBEndpoint-${EnvironmentKey}
+          DB_NAME:
+            Fn::ImportValue: !Sub ParkingDBName-${EnvironmentKey}
+          DB_SECRET:
+            Fn::ImportValue: !Sub ParkingDBSecret-${EnvironmentKey}
       
   ## IoT Rule (directly invokes the Lambda)
   ParkingIoTRule:
