@@ -38,7 +38,6 @@ Resources:
               - iot:Receive
             Resource: "*"
 
-
   ## Lambda for IoT ingestion
   IoTIngestionFunction:
     Type: AWS::Serverless::Function
