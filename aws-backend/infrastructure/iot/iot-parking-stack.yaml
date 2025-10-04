@@ -64,7 +64,7 @@ Resources:
   ParkingIoTRule:
     Type: AWS::IoT::TopicRule
     Properties:
-      RuleName: !Sub parkingStatusRule-${EnvironmentKey}
+      RuleName: !Sub parkingStatusRule${EnvironmentKey}
       TopicRulePayload:
         Sql: "SELECT * FROM 'parking/+/status'"
         AwsIotSqlVersion: "2016-03-23"
