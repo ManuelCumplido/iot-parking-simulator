@@ -46,12 +46,12 @@ Resources:
   # Create a dedicated VPC for the RDS demo
   VPC:
     Type: AWS::EC2::VPC
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       CidrBlock: 10.0.0.0/16
       EnableDnsHostnames: true  # Gives instances in this VPC a DNS hostname (e.g., ec2-54-xxx.compute.amazonaws.com)
       EnableDnsSupport: true    # Allows resources in this VPC to resolve DNS names to IP addresses
-      DeletionPolicy: Retain
-      UpdateReplacePolicy: Retain
       Tags:
         - Key: Name
           Value: !Sub parkingdb-vpc-${EnvironmentKey}
@@ -138,11 +138,11 @@ Resources:
   # Security group for RDS: allow PostgreSQL only from my IP
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       GroupDescription: Allow access to PostgreSQL only from my IP
       VpcId: !Ref VPC
-      DeletionPolicy: Retain
-      UpdateReplacePolicy: Retain
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 5432
