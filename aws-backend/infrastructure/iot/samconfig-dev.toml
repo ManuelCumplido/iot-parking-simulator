@@ -1,0 +1,9 @@
+version = 0.1
+
+[iot-dev.deploy.parameters]
+stack_name = "iot-parking-stack"
+template_file = "iot-parking-stack.yaml"
+region = "us-east-1"
+s3_bucket = "iot-parking-infra-artifacts-dev"
+capabilities = "CAPABILITY_NAMED_IAM"
+confirm_changeset = true

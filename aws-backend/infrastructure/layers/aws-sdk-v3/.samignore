@@ -1,0 +1,8 @@
+# Ignore unnecessary files
+*.log
+.git/
+.aws-sam/
+
+# Do NOT ignore the local node_modules of this layer
+!nodejs/node_modules/
+!nodejs/package.json

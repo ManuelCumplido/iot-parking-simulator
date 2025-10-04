@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda functions for Parking Simulator
+
+Parameters:
+  EnvironmentKey:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+  IoTIngestionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub iot-ingestion-${EnvironmentKey}
+      CodeUri: ../../src/iot-ingestion/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 3
+      Role:
+        Fn::ImportValue: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
+
+  ## Permiso: permitir que IoT Core invoque la Lambda
+  IoTInvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref IoTIngestionFunction
+      Principal: iot.amazonaws.com
+      SourceArn:
+        Fn::ImportValue: !Sub IoTRuleArn-${EnvironmentKey}
+
+Outputs:
+  IoTIngestionLambdaArn:
+    Description: ARN of the IoT Ingestion Lambda
+    Value: !GetAtt IoTIngestionFunction.Arn
+    Export:
+      Name: !Sub IoTIngestionLambdaArn-${EnvironmentKey}
