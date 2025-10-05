@@ -3,7 +3,7 @@ version = 0.1
 [iam-dev.deploy.parameters]
 stack_name = "iam-parking-dev"
 template_file = "infrastructure/iam/iam-parking-stack.yaml"
-region = "us-east-1"
+region = "us-east-2"
 s3_bucket = "iot-parking-infra-artifacts-dev"
 capabilities = "CAPABILITY_NAMED_IAM"
 parameter_overrides = "EnvironmentKey=\"dev\""
@@ -12,7 +12,7 @@ confirm_changeset = true
 [rds-dev.deploy.parameters]
 stack_name = "rds-parking-stack"
 template_file = "infrastructure/database/rds-parking-stack.yaml"
-region = "us-east-1"
+region = "us-east-2"
 s3_bucket = "iot-parking-infra-artifacts-dev"
 capabilities = "CAPABILITY_NAMED_IAM"
 parameter_overrides = "EnvironmentKey=\"dev\""
@@ -21,7 +21,7 @@ confirm_changeset = true
 [iot-dev.deploy.parameters]
 stack_name = "iot-parking-stack"
 template_file = "infrastructure/iot/iot-parking-stack.yaml"
-region = "us-east-1"
+region = "us-east-2"
 s3_bucket = "iot-parking-infra-artifacts-dev"
 capabilities = "CAPABILITY_NAMED_IAM"
 confirm_changeset = true
@@ -29,7 +29,7 @@ confirm_changeset = true
 [lambda-dev.deploy.parameters]
 stack_name = "lambda-parking-stack"
 template_file = "infrastructure/lambda/lambda-parking-stack.yaml"
-region = "us-east-1"
+region = "us-east-2"
 s3_bucket = "iot-parking-infra-artifacts-dev"
 capabilities = "CAPABILITY_NAMED_IAM"
 confirm_changeset = true
