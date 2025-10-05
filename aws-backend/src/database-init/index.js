@@ -1,20 +1,17 @@
-import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
-import { Client } from "pg";
-import https from "https";
-import url from "url";
+const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
+const { Client } = require("pg");
+const https = require("https");
+const url = require("url");
 
-export const handler = async (event, context) => {
-  console.log("Starting database initialization...");
-  console.log("Event:", JSON.stringify(event, null, 2));
-
-  const sendResponse = (status, reason) => {
+function sendResponseSafe(event, context, status, reason) {
+  try {
     const responseBody = JSON.stringify({
       Status: status,
       Reason: reason || "Database initialization complete",
-      PhysicalResourceId: context.logStreamName,
-      StackId: event.StackId,
-      RequestId: event.RequestId,
-      LogicalResourceId: event.LogicalResourceId,
+      PhysicalResourceId: context?.logStreamName || "unknown",
+      StackId: event?.StackId,
+      RequestId: event?.RequestId,
+      LogicalResourceId: event?.LogicalResourceId,
     });
 
     console.log("Sending response to CloudFormation:", responseBody);
@@ -35,15 +32,42 @@ export const handler = async (event, context) => {
       console.log(`CloudFormation response status: ${res.statusCode}`);
     });
 
-    req.on("error", (err) => console.error("sendResponse error:", err));
+    req.on("error", (err) => console.error("sendResponseSafe error:", err));
     req.write(responseBody);
     req.end();
-  };
+  } catch (e) {
+    console.error("Fatal: could not send response to CloudFormation:", e);
+  }
+}
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+  if (global._event && global._context) {
+    sendResponseSafe(global._event, global._context, "FAILED", err.message);
+  }
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled promise rejection:", reason);
+  if (global._event && global._context) {
+    sendResponseSafe(global._event, global._context, "FAILED", reason?.message || "Unhandled rejection");
+  }
+});
+
+
+exports.handler = async (event, context) => {
+  console.log("Starting database initialization...");
+  console.log("Event:", JSON.stringify(event, null, 2));
+
+  // Guardar referencias globales (para el catch global)
+  global._event = event;
+  global._context = context;
 
   try {
     const secretsClient = new SecretsManagerClient();
     const secretArn = process.env.DB_SECRET_ARN || event.DBSecretARN;
 
+    console.log("Fetching secret from Secrets Manager:", secretArn);
     const secretData = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
     const secret = JSON.parse(secretData.SecretString);
 
@@ -87,9 +111,9 @@ export const handler = async (event, context) => {
     console.log("Tables created or already exist.");
     await client.end();
 
-    sendResponse("SUCCESS", "Database initialized successfully");
+    sendResponseSafe(event, context, "SUCCESS", "Database initialized successfully");
   } catch (err) {
     console.error("Error initializing database:", err);
-    sendResponse("FAILED", err.message);
+    sendResponseSafe(event, context, "FAILED", err.message);
   }
 };
