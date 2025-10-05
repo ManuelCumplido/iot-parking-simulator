@@ -252,13 +252,13 @@ Outputs:
     Description: Endpoint of the RDS instance
     Value: !GetAtt RDSInstance.Endpoint.Address
     Export:
-      Name: !Sub ParkingDBEndpoint-${EnvironmentKey}
+      Name: !Sub ParkingDBEndpoint-${EnvironmentKey}-${VersionKey}
 
   DatabaseName:
     Description: Database name
     Value: !Sub ${DBName}_${EnvironmentKey}
     Export:
-      Name: !Sub ParkingDBName-${EnvironmentKey}
+      Name: !Sub ParkingDBName-${EnvironmentKey}-${VersionKey}
 
   DBSecretARN:
     Description: ARN of the database credentials secret
