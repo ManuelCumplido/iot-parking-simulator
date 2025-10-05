@@ -152,7 +152,6 @@ Resources:
   # Security group for RDS: allow PostgreSQL only from my IP
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    GroupName: !Sub parkingdb-sg-${EnvironmentKey}-${VersionKey}
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
@@ -244,9 +243,6 @@ Resources:
   # This resource runs the Lambda automatically once RDS is ready 
   DatabaseInitCustomResource:
     Type: Custom::RunSQL
-    DependsOn:
-    - RDSInstance
-    - DatabaseInitFunction
     Properties:
       ServiceToken: !GetAtt DatabaseInitFunction.Arn
       DBSecretARN: !Ref DBCredentialsSecret
