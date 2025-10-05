@@ -279,3 +279,9 @@ Outputs:
     Export:
       Name: !Sub ParkingDBSecret-${EnvironmentKey}-${VersionKey}
 
+  NodePgLayerArn:
+    Description: PostgreSQL Node Layer ARN
+    Value: !Ref NodePgLayer
+    Export:
+      Name: !Sub node-pg-layer-${EnvironmentKey}
+
