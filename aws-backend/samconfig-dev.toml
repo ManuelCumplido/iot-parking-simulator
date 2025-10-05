@@ -10,12 +10,12 @@ parameter_overrides = "EnvironmentKey=\"dev\""
 confirm_changeset = true
 
 [rds-dev.deploy.parameters]
-stack_name = "rds-parking-stack-v3"
+stack_name = "rds-parking-stack-v4"
 template_file = "infrastructure/database/rds-parking-stack.yaml"
 region = "us-east-1"
 s3_bucket = "iot-parking-infra-artifacts-dev"
 capabilities = "CAPABILITY_NAMED_IAM"
-parameter_overrides = "EnvironmentKey=\"dev\" VersionKey=\"v3\""
+parameter_overrides = "EnvironmentKey=\"dev\" VersionKey=\"v4\""
 confirm_changeset = true
 
 [iot-dev.deploy.parameters]

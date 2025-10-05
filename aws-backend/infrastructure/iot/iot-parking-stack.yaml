@@ -38,14 +38,14 @@ Resources:
               - iot:Receive
             Resource: "*"
 
-  NodePgLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: !Sub node-pg-layer-${EnvironmentKey}
-      Description: PostgreSQL client (pg) for Lambda
-      ContentUri: ../../infrastructure/layers/node-pg
-      CompatibleRuntimes:
-        - nodejs20.x
+  #NodePgLayer:
+  #  Type: AWS::Serverless::LayerVersion
+  #  Properties:
+  #    LayerName: !Sub node-pg-layer-${EnvironmentKey}
+  #    Description: PostgreSQL client (pg) for Lambda
+  #    ContentUri: ../../infrastructure/layers/node-pg
+  #    CompatibleRuntimes:
+  #      - nodejs20.x
 
   AwsSdkV3Layer:
     Type: AWS::Serverless::LayerVersion

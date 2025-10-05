@@ -213,6 +213,15 @@ Resources:
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
 
+  NodePgLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub node-pg-layer-${EnvironmentKey}
+      Description: PostgreSQL client (pg) for Lambda
+      ContentUri: ../../infrastructure/layers/node-pg
+      CompatibleRuntimes:
+        - nodejs20.x
+
   DatabaseInitFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -234,6 +243,8 @@ Resources:
               - logs:CreateLogStream
               - logs:PutLogEvents
             Resource: "*"
+      Layers:
+        - !Ref NodePgLayer
       Environment:
         Variables:
           DB_SECRET_ARN: !Ref DBCredentialsSecret
