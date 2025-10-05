@@ -238,7 +238,7 @@ Resources:
           DB_HOST: !GetAtt RDSInstance.Endpoint.Address
           DB_NAME: !Sub ${DBName}_${EnvironmentKey}
 
-  # This resource runs the Lambda automatically once RDS is ready
+  # This resource runs the Lambda automatically once RDS is ready 
   DatabaseInitCustomResource:
     Type: Custom::RunSQL
     Properties:
