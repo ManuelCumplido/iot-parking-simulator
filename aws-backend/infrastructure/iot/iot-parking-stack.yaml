@@ -68,7 +68,7 @@ Resources:
       Role:
         Fn::ImportValue: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
       Layers:
-        - !ImportValue node-pg-layer-${EnvironmentKey}
+        - Fn::ImportValue: !Sub node-pg-layer-${EnvironmentKey}
         - !Ref AwsSdkV3Layer
       Environment:
         Variables:
