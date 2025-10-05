@@ -30,6 +30,10 @@ Parameters:
     Type: String
     Default: 127.0.0.1/32
     Description: "Restrict DB access to this public IP (format: x.x.x.x/32)"
+  VersionKey:
+    Type: String
+    Default: v2
+    Description: Version of the stack
 
 Conditions:
   # Only true when EnvironmentKey = prod
@@ -260,5 +264,5 @@ Outputs:
     Description: ARN of the database credentials secret
     Value: !Ref DBCredentialsSecret
     Export:
-      Name: !Sub ParkingDBSecret-${EnvironmentKey}
+      Name: !Sub ParkingDBSecret-${EnvironmentKey}-${VersionKey}
 

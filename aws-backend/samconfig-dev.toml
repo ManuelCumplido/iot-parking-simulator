@@ -15,7 +15,7 @@ template_file = "infrastructure/database/rds-parking-stack.yaml"
 region = "us-east-1"
 s3_bucket = "iot-parking-infra-artifacts-dev"
 capabilities = "CAPABILITY_NAMED_IAM"
-parameter_overrides = "EnvironmentKey=\"dev\""
+parameter_overrides = "EnvironmentKey=\"dev\" VersionKey=\"v2\""
 confirm_changeset = true
 
 [iot-dev.deploy.parameters]
