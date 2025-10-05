@@ -33,7 +33,7 @@ Parameters:
   VersionKey:
     Type: String
     Default: v2
-    Description: Version of the stack
+    Description: Version of rds stack
 
 Conditions:
   # Only true when EnvironmentKey = prod
