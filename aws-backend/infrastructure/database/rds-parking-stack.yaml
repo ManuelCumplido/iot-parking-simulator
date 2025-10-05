@@ -54,7 +54,7 @@ Resources:
       EnableDnsSupport: true    # Allows resources in this VPC to resolve DNS names to IP addresses
       Tags:
         - Key: Name
-          Value: !Sub parkingdb-vpc-${EnvironmentKey}
+          Value: !Sub parkingdb-vpc-${EnvironmentKey}-${VersionKey}
 
   # Internet Gateway to allow outbound traffic from the VPC
   InternetGateway:
@@ -84,7 +84,7 @@ Resources:
           - Fn::GetAZs: ""     # Get all Availability Zones in the current region
       Tags:
         - Key: Name
-          Value: !Sub parkingdb-public-subnet1-${EnvironmentKey}
+          Value: !Sub parkingdb-public-subnet1-${EnvironmentKey}-${VersionKey}
 
   # Public subnet 2 (us-east-1b)
   PublicSubnet2:
@@ -101,7 +101,7 @@ Resources:
           - Fn::GetAZs: ""
       Tags:
         - Key: Name
-          Value: !Sub parkingdb-public-subnet2-${EnvironmentKey}
+          Value: !Sub parkingdb-public-subnet2-${EnvironmentKey}-${VersionKey}
 
   # Route table for the public subnet
   RouteTable:
@@ -152,6 +152,7 @@ Resources:
   # Security group for RDS: allow PostgreSQL only from my IP
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    GroupName: !Sub parkingdb-sg-${EnvironmentKey}-${VersionKey}
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
@@ -168,16 +169,18 @@ Resources:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Retain # Keep DB even if stack is deleted (avoid accidental loss)
     UpdateReplacePolicy: Retain  # Keep the DB if replaced (do not delete existing data)
+    DependsOn:
+    - DBCredentialsSecret
     Properties:
-      DBInstanceIdentifier: !Sub parkingdb-rds-${EnvironmentKey}
+      DBInstanceIdentifier: !Sub parkingdb-rds-${EnvironmentKey}-${VersionKey}
       AllocatedStorage: 20 # Free tier: 20 GB
       MaxAllocatedStorage: 100
       DBInstanceClass: db.t3.micro # Free tier eligible
       Engine: postgres
       #EngineVersion: "15.4" # optional, remove to let AWS pick latest supported
       MasterUsername: !Ref DBUsername
-      MasterUserPassword: !Sub "{{resolve:secretsmanager:parkingdb-db-credentials-${EnvironmentKey}:SecretString:password}}"
-      DBName: !Sub ${DBName}_${EnvironmentKey}
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:parkingdb-db-credentials-${EnvironmentKey}-${VersionKey}:SecretString:password}}"
+      DBName: !Sub ${DBName}_${EnvironmentKey}_${VersionKey}
       VPCSecurityGroups:
         - !GetAtt DBSecurityGroup.GroupId
       DBSubnetGroupName: !Ref DBSubnetGroup
@@ -203,8 +206,8 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      Name: !Sub parkingdb-db-credentials-${EnvironmentKey}
-      Description: !Sub Credentials for PostgreSQL RDS ${EnvironmentKey}
+      Name: !Sub parkingdb-db-credentials-${EnvironmentKey}-${VersionKey}
+      Description: !Sub Credentials for PostgreSQL RDS ${EnvironmentKey}-${VersionKey}
       GenerateSecretString:
         SecretStringTemplate: !Sub '{"username": "${DBUsername}"}'
         GenerateStringKey: "password"
@@ -214,7 +217,7 @@ Resources:
   DatabaseInitFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub parkingdb-init-${EnvironmentKey}
+      FunctionName: !Sub parkingdb-init-${EnvironmentKey}-${VersionKey}
       CodeUri: ../../src/database-init/
       Handler: index.handler
       Runtime: nodejs20.x
@@ -236,16 +239,19 @@ Resources:
         Variables:
           DB_SECRET_ARN: !Ref DBCredentialsSecret
           DB_HOST: !GetAtt RDSInstance.Endpoint.Address
-          DB_NAME: !Sub ${DBName}_${EnvironmentKey}
+          DB_NAME: !Sub ${DBName}_${EnvironmentKey}-${VersionKey}
 
   # This resource runs the Lambda automatically once RDS is ready 
   DatabaseInitCustomResource:
     Type: Custom::RunSQL
+    DependsOn:
+    - RDSInstance
+    - DatabaseInitFunction
     Properties:
       ServiceToken: !GetAtt DatabaseInitFunction.Arn
       DBSecretARN: !Ref DBCredentialsSecret
       DBHost: !GetAtt RDSInstance.Endpoint.Address
-      DBName: !Sub ${DBName}_${EnvironmentKey}
+      DBName: !Sub ${DBName}_${EnvironmentKey}-${VersionKey}
 
 Outputs:
   RDSEndpoint:
