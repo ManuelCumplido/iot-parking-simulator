@@ -107,12 +107,12 @@ Resources:
               Payload:
                 slotId.$: "$.slotId"
                 message.$: "$.message"
-            Next: WaitAndRepeat
+            Next: EndSimulation
 
-          WaitAndRepeat:
-            Type: Wait
-            Seconds: 10
-            Next: UpdateDeviceShadow
+          EndSimulation:
+            Type: Succeed
+            Comment: "Marks the end of the IoT Parking simulation"
+            End: true
 
       TracingConfiguration:
         Enabled: true
