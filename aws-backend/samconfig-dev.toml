@@ -33,3 +33,11 @@ region = "us-east-2"
 s3_bucket = "iot-parking-infra-artifacts-dev"
 capabilities = "CAPABILITY_NAMED_IAM"
 confirm_changeset = true
+
+[stepfunction-dev.deploy.parameters]
+stack_name = "stepfunction-parking-stack"
+template_file = "infrastructure/stepfunctions/stepfunction-parking-stack.yaml"
+region = "us-east-2"
+s3_bucket = "iot-parking-infra-artifacts-dev"
+capabilities = "CAPABILITY_NAMED_IAM"
+confirm_changeset = true
