@@ -34,11 +34,11 @@ Parameters:
     Type: String
     Description: Name of the Lambda function that publishes the SNS notification
 
-Conditions:
-  IsProd:
-    Fn::Equals:
-      - Ref: EnvironmentKey
-      - prod
+#Conditions:
+#  IsProd:
+#    Fn::Equals:
+#      - Ref: EnvironmentKey
+#      - prod
 
 Resources:
 
