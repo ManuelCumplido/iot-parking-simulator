@@ -18,21 +18,21 @@ Parameters:
       - prod
     Description: Environment where this stack is deployed (dev/staging/prod)
 
-  UpdateDeviceShadowFunctionName:
-    Type: String
-    Description: Name of the Lambda function that updates the IoT Device Shadow
-
-  GetShadowFunctionName:
-    Type: String
-    Description: Name of the Lambda function that retrieves the IoT Device Shadow
-
-  UpdateDBFunctionName:
-    Type: String
-    Description: Name of the Lambda function that updates the Parking DB
-
-  SNSNotifyFunctionName:
-    Type: String
-    Description: Name of the Lambda function that publishes the SNS notification
+  #UpdateDeviceShadowFunctionName:
+  #  Type: String
+  #  Description: Name of the Lambda function that updates the IoT Device Shadow
+#
+  #GetShadowFunctionName:
+  #  Type: String
+  #  Description: Name of the Lambda function that retrieves the IoT Device Shadow
+#
+  #UpdateDBFunctionName:
+  #  Type: String
+  #  Description: Name of the Lambda function that updates the Parking DB
+#
+  #SNSNotifyFunctionName:
+  #  Type: String
+  #  Description: Name of the Lambda function that publishes the SNS notification
 
 #Conditions:
 #  IsProd:
