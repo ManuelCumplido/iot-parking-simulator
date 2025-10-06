@@ -1,3 +1,9 @@
+# SAM Template: IAM Roles for Parking Simulator
+# Provisions IAM roles for Lambda functions and Step Functions used in the IoT Parking demo.
+# Includes roles for:
+# 1. IoTIngestionLambdaRole – grants access to Secrets Manager and RDS.
+# 2. StepFunctionExecutionRole – allows Step Functions to invoke Lambda functions.
+
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: IAM roles for Parking Simulator
@@ -10,12 +16,14 @@ Parameters:
       - dev
       - staging
       - prod
+    Description: Environment where this stack is deployed (dev/staging/prod)
 
 Resources:
   ## Role for IoT Ingestion Lambda
   IoTIngestionLambdaRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub iot-ingestion-lambda-role-${EnvironmentKey}
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -25,7 +33,7 @@ Resources:
             Action: sts:AssumeRole
       Path: /
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole # logs
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole # Allows logs to CloudWatch
       Policies:
         - PolicyName: SecretsAndRDSAccess
           PolicyDocument:
@@ -38,9 +46,41 @@ Resources:
                   - rds-data:BatchExecuteStatement
                 Resource: "*"
 
+  ## Role for Step Function to invoke Lambdas
+  StepFunctionExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub stepfunction-parking-role-${EnvironmentKey}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      Policies:
+        - PolicyName: StepFunctionLambdaInvokePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: "*"
+
 Outputs:
   IoTIngestionLambdaRoleArn:
     Description: ARN of the IAM Role for IoT ingestion Lambda
     Value: !GetAtt IoTIngestionLambdaRole.Arn
     Export:
       Name: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
+
+  StepFunctionExecutionRoleArn:
+    Description: ARN of the IAM Role for Step Function execution
+    Value: !GetAtt StepFunctionExecutionRole.Arn
+    Export:
+      Name: !Sub StepFunctionExecutionRoleArn-${EnvironmentKey}
