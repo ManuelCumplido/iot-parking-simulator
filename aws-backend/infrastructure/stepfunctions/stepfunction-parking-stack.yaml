@@ -112,7 +112,6 @@ Resources:
           EndSimulation:
             Type: Succeed
             Comment: "Marks the end of the IoT Parking simulation"
-            End: true
 
       TracingConfiguration:
         Enabled: true
