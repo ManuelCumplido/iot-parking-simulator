@@ -124,6 +124,57 @@ Resources:
                   - iot:GetThingShadow
                 Resource: "*"
 
+  ## Role for Shadow Delta Handler Lambda
+  ShadowDeltaHandlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub shadow-delta-handler-role-${EnvironmentKey}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: IoTShadowDeltaAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iot:UpdateThingShadow
+                Resource: "*"
+
+  ## Role for SNS Notify Lambda
+  SnsNotifyLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub sns-notify-lambda-role-${EnvironmentKey}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        # Basic permissions to write logs to CloudWatch
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SnsPublishPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: "*"
+
 Outputs:
   IoTIngestionLambdaRoleArn:
     Description: ARN of the IAM Role for IoT ingestion Lambda
@@ -148,4 +199,16 @@ Outputs:
     Value: !GetAtt GetDeviceShadowLambdaRole.Arn
     Export:
       Name: !Sub GetDeviceShadowLambdaRoleArn-${EnvironmentKey}
+
+  ShadowDeltaHandlerRoleArn:
+    Description: ARN of the SNS Notify Lambda Role
+    Value: !GetAtt ShadowDeltaHandlerRole.Arn
+    Export:
+      Name: !Sub ShadowDeltaHandlerRoleArn-${EnvironmentKey}
+
+  SnsNotifyLambdaRoleArn:
+    Description: ARN of the SNS Notify Lambda Role
+    Value: !GetAtt SnsNotifyLambdaRole.Arn
+    Export:
+      Name: !Sub SnsNotifyLambdaRoleArn-${EnvironmentKey}
 

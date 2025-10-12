@@ -17,7 +17,7 @@ exports.handler = async (event) => {
 
   // Define the new desired state payload for the device shadow
   const payload = {
-    state: { desired: { occupied: status } },
+    state: { desired: { status } },
   };
 
   const params = {

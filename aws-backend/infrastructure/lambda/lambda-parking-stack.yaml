@@ -47,6 +47,24 @@ Resources:
       Role:
         Fn::ImportValue: !Sub GetDeviceShadowLambdaRoleArn-${EnvironmentKey}
 
+  ## Lambda for handling shadow delta updates
+  ShadowDeltaHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub iotShadowDeltaHandler-${EnvironmentKey}
+      CodeUri: ../../src/iotShadowDeltaHandler/
+      Role:
+        Fn::ImportValue: !Sub ShadowDeltaHandlerRoleArn-${EnvironmentKey}
+
+  ## Lambda for sending SNS email notifications
+  SnsNotifyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub snsNotify-${EnvironmentKey}
+      CodeUri: ../../src/snsNotify/
+      Role:
+        Fn::ImportValue: !Sub SnsNotifyLambdaRoleArn-${EnvironmentKey}
+
 Outputs:
   UpdateDeviceShadowFunctionArn:
     Description: ARN of the UpdateDeviceShadow Lambda
@@ -59,3 +77,15 @@ Outputs:
     Value: !GetAtt GetDeviceShadowFunction.Arn
     Export:
       Name: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
+
+  ShadowDeltaHandlerFunctionArn:
+    Description: ARN of the ShadowDeltaHandler Lambda
+    Value: !GetAtt ShadowDeltaHandlerFunction.Arn
+    Export:
+      Name: !Sub ShadowDeltaHandlerFunctionArn-${EnvironmentKey}
+
+  SnsNotifyFunctionArn:
+    Description: ARN of the SNS Notify Lambda
+    Value: !GetAtt SnsNotifyFunction.Arn
+    Export:
+      Name: !Sub SnsNotifyFunctionArn-${EnvironmentKey}

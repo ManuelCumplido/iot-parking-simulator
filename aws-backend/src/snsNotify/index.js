@@ -1,6 +1,11 @@
 // snsNotify.js
-export const handler = async (event) => {
+exports.handler = async (event) => {
   console.log("SNSNotify input:", event);
-  console.log(`Notification: ${event.slotId} → ${event.message || "Simulation completed"}`);
-  return { success: true };
+
+  const slotId = event.slotId || "UnknownSlot";
+  const message = event.message || "Simulation completed";
+
+  console.log(`Notification → Slot: ${slotId}, Message: ${message}`);
+
+    return { success: true };
 };
