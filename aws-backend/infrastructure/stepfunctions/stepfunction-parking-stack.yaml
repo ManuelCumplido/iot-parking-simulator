@@ -59,35 +59,29 @@ Resources:
                 Fn::ImportValue: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
               Payload:
                 slotId.$: "$.slotId"
-            Next: EndSimulation
-            #Next: UpdateDB
+            Next: CheckSync
+            
+          CheckSync:
+            Type: Choice
+            Choices:
+              - Variable: "$.isSynced"
+                BooleanEquals: true
+                Next: EndSimulation
+            Default: SNSNotify
 
-          #UpdateDB:
-          #  Type: Task
-          #  Resource: arn:aws:states:::lambda:invoke
-          #  TimeoutSeconds: 3
-          #  OutputPath: "$.Payload"
-          #  Parameters:
-          #    #FunctionName: !Ref UpdateDBFunctionName
-          #    FunctionName: "dummy-update-database"
-          #    Payload:
-          #      slotId.$: "$.slotId"
-          #      state.$: "$.state"
-          #  Next: SNSNotify
-#
-          #SNSNotify:
-          #  Type: Task
-          #  Resource: arn:aws:states:::lambda:invoke
-          #  TimeoutSeconds: 3
-          #  OutputPath: "$.Payload"
-          #  Parameters:
-          #    #FunctionName: !Ref SNSNotifyFunctionName
-          #    FunctionName: "dummy-sns-notify"
-          #    Payload:
-          #      slotId.$: "$.slotId"
-          #      message.$: "$.message"
-          #  Next: EndSimulation
-#
+          SNSNotify:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            TimeoutSeconds: 3
+            OutputPath: "$.Payload"
+            Parameters:
+              FunctionName:
+                Fn::ImportValue: !Sub SnsNotifyFunctionArn-${EnvironmentKey}
+              Payload:
+                slotId.$: "$.slotId"
+                message: "Shadow is not synchronized"
+            Next: EndSimulation
+
           EndSimulation:
             Type: Succeed
             Comment: "Marks the end of the IoT Parking simulation"
