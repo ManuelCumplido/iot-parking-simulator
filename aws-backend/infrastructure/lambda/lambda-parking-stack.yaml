@@ -25,24 +25,6 @@ Globals:
       Project: ParkingSimulator 
 
 Resources:
-  IoTIngestionFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub iot-ingestion-${EnvironmentKey}
-      CodeUri: ../../src/iot-ingestion/
-      Role:
-        Fn::ImportValue: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
-
-  ## Permiso: permitir que IoT Core invoque la Lambda
-  IoTInvokeLambdaPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref IoTIngestionFunction
-      Principal: iot.amazonaws.com
-      SourceArn:
-        Fn::ImportValue: !Sub IoTRuleArn-${EnvironmentKey}
-
   UpdateDeviceShadowFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -66,12 +48,6 @@ Resources:
         Fn::ImportValue: !Sub GetDeviceShadowLambdaRoleArn-${EnvironmentKey}
 
 Outputs:
-  IoTIngestionLambdaArn:
-    Description: ARN of the IoT Ingestion Lambda
-    Value: !GetAtt IoTIngestionFunction.Arn
-    Export:
-      Name: !Sub IoTIngestionLambdaArn-${EnvironmentKey}
-
   UpdateDeviceShadowFunctionArn:
     Description: ARN of the UpdateDeviceShadow Lambda
     Value: !GetAtt UpdateDeviceShadowFunction.Arn

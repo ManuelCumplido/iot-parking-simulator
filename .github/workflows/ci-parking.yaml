@@ -58,6 +58,7 @@ jobs:
           sam validate --lint --template-file infrastructure/database/rds-parking-stack.yaml
           sam validate --lint --template-file infrastructure/iam/iam-parking-stack.yaml
           sam validate --lint --template-file infrastructure/iot/iot-parking-stack.yaml
+          sam validate --lint --template-file infrastructure/lambda/lambda-parking-stack.yaml
           sam validate --lint --template-file infrastructure/stepfunctions/stepfunction-parking-stack.yaml
 
 #  integration-tests:
