@@ -107,7 +107,7 @@ Resources:
       RuleName: !Sub shadowDeltaRule${EnvironmentKey}
       TopicRulePayload:
         AwsIotSqlVersion: "2016-03-23"
-        Sql: "SELECT * FROM '$aws/things/+/shadow/update/delta'"
+        Sql: "SELECT *, topic() AS topic FROM '$aws/things/+/shadow/update/delta'"
         Actions:
           - Lambda:
               FunctionArn:
