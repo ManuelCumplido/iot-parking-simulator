@@ -54,7 +54,7 @@ Resources:
       Role:
         Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
 
-  GetShadowFunction:
+  GetDeviceShadowFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub getDeviceShadow-${EnvironmentKey}
