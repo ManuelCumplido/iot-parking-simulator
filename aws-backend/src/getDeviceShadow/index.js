@@ -32,7 +32,7 @@ exports.handler = async (event) => {
     console.log(`Shadow sync status for ${slotId}: desired=${desired}, reported=${reported}, isSynced=${isSynced}`);
 
     // Return the relevant state information
-    return { isSynced };
+    return { slotId, isSynced };
 
   } catch (error) {
     console.error("GetDeviceShadow error:", error);
