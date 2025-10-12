@@ -18,28 +18,6 @@ Parameters:
       - prod
     Description: Environment where this stack is deployed (dev/staging/prod)
 
-  #UpdateDeviceShadowFunctionName:
-  #  Type: String
-  #  Description: Name of the Lambda function that updates the IoT Device Shadow
-#
-  #GetShadowFunctionName:
-  #  Type: String
-  #  Description: Name of the Lambda function that retrieves the IoT Device Shadow
-#
-  #UpdateDBFunctionName:
-  #  Type: String
-  #  Description: Name of the Lambda function that updates the Parking DB
-#
-  #SNSNotifyFunctionName:
-  #  Type: String
-  #  Description: Name of the Lambda function that publishes the SNS notification
-
-#Conditions:
-#  IsProd:
-#    Fn::Equals:
-#      - Ref: EnvironmentKey
-#      - prod
-
 Resources:
 
   # Step Function definition for IoT Parking flow
@@ -59,8 +37,8 @@ Resources:
             TimeoutSeconds: 3
             OutputPath: "$.Payload" # Extracts only the Lambda's response body (Payload) from the full Step Functions task output
             Parameters:
-              #FunctionName: !Ref UpdateDeviceShadowFunctionName
-              FunctionName: "dummy-update-shadow"
+              FunctionName: 
+                Fn::ImportValue: !Sub UpdateDeviceShadowFunctionArn-${EnvironmentKey}
               Payload:
                 slotId.$: "$.slotId"   # Dynamically passes the 'slotId' field from the state input to the Lambda payload
                 status.$: "$.status"   # Dynamically passes the 'status' field from the state input to the Lambda payload
@@ -71,44 +49,45 @@ Resources:
             Seconds: 5
             Next: GetShadow
 
-          GetShadow:
+          GetDeviceShadow:
             Type: Task
             Resource: arn:aws:states:::lambda:invoke
             TimeoutSeconds: 3
             OutputPath: "$.Payload"
             Parameters:
-              #FunctionName: !Ref GetShadowFunctionName
-              FunctionName: "dummy-get-shadow"
+              FunctionName:
+                Fn::ImportValue: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
               Payload:
                 slotId.$: "$.slotId"
-            Next: UpdateDB
-
-          UpdateDB:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            TimeoutSeconds: 3
-            OutputPath: "$.Payload"
-            Parameters:
-              #FunctionName: !Ref UpdateDBFunctionName
-              FunctionName: "dummy-update-database"
-              Payload:
-                slotId.$: "$.slotId"
-                state.$: "$.state"
-            Next: SNSNotify
-
-          SNSNotify:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            TimeoutSeconds: 3
-            OutputPath: "$.Payload"
-            Parameters:
-              #FunctionName: !Ref SNSNotifyFunctionName
-              FunctionName: "dummy-sns-notify"
-              Payload:
-                slotId.$: "$.slotId"
-                message.$: "$.message"
             Next: EndSimulation
+            #Next: UpdateDB
 
+          #UpdateDB:
+          #  Type: Task
+          #  Resource: arn:aws:states:::lambda:invoke
+          #  TimeoutSeconds: 3
+          #  OutputPath: "$.Payload"
+          #  Parameters:
+          #    #FunctionName: !Ref UpdateDBFunctionName
+          #    FunctionName: "dummy-update-database"
+          #    Payload:
+          #      slotId.$: "$.slotId"
+          #      state.$: "$.state"
+          #  Next: SNSNotify
+#
+          #SNSNotify:
+          #  Type: Task
+          #  Resource: arn:aws:states:::lambda:invoke
+          #  TimeoutSeconds: 3
+          #  OutputPath: "$.Payload"
+          #  Parameters:
+          #    #FunctionName: !Ref SNSNotifyFunctionName
+          #    FunctionName: "dummy-sns-notify"
+          #    Payload:
+          #      slotId.$: "$.slotId"
+          #      message.$: "$.message"
+          #  Next: EndSimulation
+#
           EndSimulation:
             Type: Succeed
             Comment: "Marks the end of the IoT Parking simulation"
