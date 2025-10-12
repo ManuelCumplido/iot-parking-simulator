@@ -100,6 +100,28 @@ Resources:
       Principal: iot.amazonaws.com
       SourceArn: !GetAtt ParkingIoTRule.Arn
 
+  ## IoT Rule: triggers when a thing shadow delta is generated
+  ShadowDeltaIoTRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: !Sub shadowDeltaRule-${EnvironmentKey}
+      TopicRulePayload:
+        AwsIotSqlVersion: "2016-03-23"
+        Sql: "SELECT * FROM '$aws/things/+/shadow/update/delta'"
+        Actions:
+          - Lambda:
+              FunctionArn: !GetAtt ShadowDeltaHandlerFunction.Arn
+        RuleDisabled: false
+  
+  ## Permission for IoT Core to invoke the Lambda
+  ShadowDeltaInvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ShadowDeltaHandlerFunction
+      Principal: iot.amazonaws.com
+      SourceArn: !GetAtt ShadowDeltaIoTRule.Arn
+
 Outputs:
   ThingName:
     Value: !Ref ParkingThing
