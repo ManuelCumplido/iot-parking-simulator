@@ -104,13 +104,14 @@ Resources:
   ShadowDeltaIoTRule:
     Type: AWS::IoT::TopicRule
     Properties:
-      RuleName: !Sub shadowDeltaRule-${EnvironmentKey}
+      RuleName: !Sub shadowDeltaRule${EnvironmentKey}
       TopicRulePayload:
         AwsIotSqlVersion: "2016-03-23"
         Sql: "SELECT * FROM '$aws/things/+/shadow/update/delta'"
         Actions:
           - Lambda:
-              FunctionArn: !GetAtt ShadowDeltaHandlerFunction.Arn
+              FunctionArn:
+                Fn::ImportValue: !Sub ShadowDeltaHandlerFunctionArn-${EnvironmentKey}
         RuleDisabled: false
   
   ## Permission for IoT Core to invoke the Lambda
@@ -118,7 +119,8 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref ShadowDeltaHandlerFunction
+      FunctionName:
+        Fn::ImportValue: !Sub ShadowDeltaHandlerFunctionArn-${EnvironmentKey}
       Principal: iot.amazonaws.com
       SourceArn: !GetAtt ShadowDeltaIoTRule.Arn
 
