@@ -32,7 +32,7 @@ Resources:
       CodeUri: ../../src/updateDeviceShadow/
       Environment:
         Variables:
-          IOT_ENDPOINT: !Ref IoTEndpointKey
+          IOT_ENDPOINT: !Sub "https://${IoTEndpointKey}"
       Role:
         Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
 
@@ -43,7 +43,7 @@ Resources:
       CodeUri: ../../src/getDeviceShadow/
       Environment:
         Variables:
-          IOT_ENDPOINT: !Ref IoTEndpointKey
+          IOT_ENDPOINT: !Sub "https://${IoTEndpointKey}"
       Role:
         Fn::ImportValue: !Sub GetDeviceShadowLambdaRoleArn-${EnvironmentKey}
 
