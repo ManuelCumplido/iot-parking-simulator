@@ -1,0 +1,106 @@
+# SAM Template: Parking Step Function (IoT Parking Simulation)
+# Provisions an AWS Step Functions State Machine to orchestrate the IoT Parking demo flow.
+# The flow updates the Device Shadow, waits for synchronization, retrieves state, updates DB, and notifies SNS.
+# Integrates with existing Lambda functions (UpdateDeviceShadow, GetShadow, UpdateDB, SNSNotify).
+# Optimized for demo: Manual trigger, simple retry, and loop simulation.
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Demo Step Function for IoT Parking Simulation (Free Tier Friendly)
+
+Parameters:
+  EnvironmentKey:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment where this stack is deployed (dev/staging/prod)
+
+Resources:
+
+  # Step Function definition for IoT Parking flow
+  ParkingStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub parking-simulation-${EnvironmentKey}
+      RoleArn:
+        Fn::ImportValue: !Sub "StepFunctionExecutionRoleArn-${EnvironmentKey}"
+      Definition:
+        Comment: "IoT Parking Simulation Flow"
+        StartAt: UpdateDeviceShadow
+        States:
+          UpdateDeviceShadow:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            TimeoutSeconds: 3
+            OutputPath: "$.Payload" # Extracts only the Lambda's response body (Payload) from the full Step Functions task output
+            Parameters:
+              FunctionName: 
+                Fn::ImportValue: !Sub UpdateDeviceShadowFunctionArn-${EnvironmentKey}
+              Payload:
+                slotId.$: "$.slotId"   # Dynamically passes the 'slotId' field from the state input to the Lambda payload
+                status.$: "$.status"   # Dynamically passes the 'status' field from the state input to the Lambda payload
+            Next: WaitShadowSync
+
+          WaitShadowSync:
+            Type: Wait
+            Seconds: 5
+            Next: GetDeviceShadow
+
+          GetDeviceShadow:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            TimeoutSeconds: 3
+            OutputPath: "$.Payload"
+            Parameters:
+              FunctionName:
+                Fn::ImportValue: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
+              Payload:
+                slotId.$: "$.slotId"
+            Next: EndSimulation
+            #Next: UpdateDB
+
+          #UpdateDB:
+          #  Type: Task
+          #  Resource: arn:aws:states:::lambda:invoke
+          #  TimeoutSeconds: 3
+          #  OutputPath: "$.Payload"
+          #  Parameters:
+          #    #FunctionName: !Ref UpdateDBFunctionName
+          #    FunctionName: "dummy-update-database"
+          #    Payload:
+          #      slotId.$: "$.slotId"
+          #      state.$: "$.state"
+          #  Next: SNSNotify
+#
+          #SNSNotify:
+          #  Type: Task
+          #  Resource: arn:aws:states:::lambda:invoke
+          #  TimeoutSeconds: 3
+          #  OutputPath: "$.Payload"
+          #  Parameters:
+          #    #FunctionName: !Ref SNSNotifyFunctionName
+          #    FunctionName: "dummy-sns-notify"
+          #    Payload:
+          #      slotId.$: "$.slotId"
+          #      message.$: "$.message"
+          #  Next: EndSimulation
+#
+          EndSimulation:
+            Type: Succeed
+            Comment: "Marks the end of the IoT Parking simulation"
+
+      TracingConfiguration:
+        Enabled: true
+      Tags:
+        - Key: EnvironmentKey
+          Value: !Ref EnvironmentKey
+
+Outputs:
+  ParkingStateMachineArn:
+    Description: ARN of the IoT Parking Step Function
+    Value: !Ref ParkingStateMachine
+    Export:
+      Name: !Sub ParkingStateMachineArn-${EnvironmentKey}

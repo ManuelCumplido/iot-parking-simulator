@@ -10,32 +10,52 @@ Parameters:
       - dev
       - staging
       - prod
+  IoTEndpointKey:
+    Type: String
+    Default: a32j14dxvrqa8a-ats.iot.us-east-2.amazonaws.com
+
+Globals:
+  Function:
+    Runtime: nodejs20.x       # Default runtime for all Lambda functions (Node.js 20)
+    Handler: index.handler    # Standard entry point (index.js with "exports.handler")
+    MemorySize: 128           # Default memory allocation in MB (lightweight baseline)
+    Timeout: 3                # Maximum execution time in seconds (prevents long-running tasks)
+    Tracing: Active           # Enables AWS X-Ray tracing for all Lambda functions
+    Tags:
+      Project: ParkingSimulator 
 
 Resources:
-  IoTIngestionFunction:
+  UpdateDeviceShadowFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub iot-ingestion-${EnvironmentKey}
-      CodeUri: ../../src/iot-ingestion/
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Timeout: 3
+      FunctionName: !Sub updateDeviceShadow-${EnvironmentKey}
+      CodeUri: ../../src/updateDeviceShadow/
+      Environment:
+        Variables:
+          IOT_ENDPOINT: !Sub "https://${IoTEndpointKey}"
       Role:
-        Fn::ImportValue: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
+        Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
 
-  ## Permiso: permitir que IoT Core invoque la Lambda
-  IoTInvokeLambdaPermission:
-    Type: AWS::Lambda::Permission
+  GetDeviceShadowFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref IoTIngestionFunction
-      Principal: iot.amazonaws.com
-      SourceArn:
-        Fn::ImportValue: !Sub IoTRuleArn-${EnvironmentKey}
+      FunctionName: !Sub getDeviceShadow-${EnvironmentKey}
+      CodeUri: ../../src/getDeviceShadow/
+      Environment:
+        Variables:
+          IOT_ENDPOINT: !Sub "https://${IoTEndpointKey}"
+      Role:
+        Fn::ImportValue: !Sub GetDeviceShadowLambdaRoleArn-${EnvironmentKey}
 
 Outputs:
-  IoTIngestionLambdaArn:
-    Description: ARN of the IoT Ingestion Lambda
-    Value: !GetAtt IoTIngestionFunction.Arn
+  UpdateDeviceShadowFunctionArn:
+    Description: ARN of the UpdateDeviceShadow Lambda
+    Value: !GetAtt UpdateDeviceShadowFunction.Arn
     Export:
-      Name: !Sub IoTIngestionLambdaArn-${EnvironmentKey}
+      Name: !Sub UpdateDeviceShadowFunctionArn-${EnvironmentKey}
+
+  GetDeviceShadowFunctionArn:
+    Description: ARN of the GetDeviceShadow Lambda
+    Value: !GetAtt GetDeviceShadowFunction.Arn
+    Export:
+      Name: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}

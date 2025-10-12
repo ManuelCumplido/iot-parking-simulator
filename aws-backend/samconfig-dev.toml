@@ -1,4 +1,4 @@
-version = 1.0
+version = 1.2
 
 [iam-dev.deploy.parameters]
 stack_name = "iam-parking-dev"
@@ -29,6 +29,14 @@ confirm_changeset = true
 [lambda-dev.deploy.parameters]
 stack_name = "lambda-parking-stack"
 template_file = "infrastructure/lambda/lambda-parking-stack.yaml"
+region = "us-east-2"
+s3_bucket = "iot-parking-infra-artifacts-dev"
+capabilities = "CAPABILITY_NAMED_IAM"
+confirm_changeset = true
+
+[stepfunction-dev.deploy.parameters]
+stack_name = "stepfunction-parking-stack"
+template_file = "infrastructure/stepfunctions/stepfunction-parking-stack.yaml"
 region = "us-east-2"
 s3_bucket = "iot-parking-infra-artifacts-dev"
 capabilities = "CAPABILITY_NAMED_IAM"
