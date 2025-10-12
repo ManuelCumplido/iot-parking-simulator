@@ -47,7 +47,7 @@ Resources:
           WaitShadowSync:
             Type: Wait
             Seconds: 5
-            Next: GetShadow
+            Next: GetDeviceShadow
 
           GetDeviceShadow:
             Type: Task
