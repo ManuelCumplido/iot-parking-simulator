@@ -25,8 +25,8 @@ exports.handler = async (event) => {
     console.log("Shadow content:", JSON.stringify(shadow, null, 2));
 
     // Extract desired and reported values for validation
-    const desired = shadow.state?.desired?.occupied;
-    const reported = shadow.state?.reported?.occupied;
+    const desired = shadow.state?.desired?.status;
+    const reported = shadow.state?.reported?.status;
     const isSynced = desired === reported;
 
     console.log(`Shadow sync status for ${slotId}: desired=${desired}, reported=${reported}, isSynced=${isSynced}`);
