@@ -46,22 +46,20 @@ Resources:
 
           SendDevicesToQueue:
             Type: Map
-            ItemsPath: $.devices # Iterate over each device in the input array
-            Parameters:
-              QueueUrl:
-                Fn::ImportValue: !Sub StartProcessingQueueUrl-${EnvironmentKey} # Import the SQS queue URL from the Messaging stack
-              MessageBody.$: "$"  # Pass the current device object (e.g., {"slotId":"PARK001","status":"occupied"}) as the message body
+            ItemsPath: $.devices  # Iterate over each device in the input array
             Iterator:
-              StartAt: SendSingleDevice  # Define the inner workflow for each device iteration
+              StartAt: SendSingleDevice
               States:
                 SendSingleDevice:
                   Type: Task
                   Resource: arn:aws:states:::sqs:sendMessage
                   Parameters:
-                    QueueUrl.$: "$.QueueUrl"  # Use the imported QueueUrl from the parent Parameters
-                    MessageBody.$: "$.MessageBody"  # Use the current iteration payload as the SQS message body
-                  End: true  # End this inner iteration
-            Next: WaitShadowSync  # Continue the main workflow once all messages are sent
+                    QueueUrl:
+                      Fn::ImportValue: !Sub StartProcessingQueueUrl-${EnvironmentKey}  # Import the queue URL
+                    MessageBody.$: "$"  # "$" here now refers to the single current device (not the full array)
+                  End: true
+            Next: WaitShadowSync  # Continue after all SQS messages are sent
+
 
           WaitShadowSync:
             Type: Wait
