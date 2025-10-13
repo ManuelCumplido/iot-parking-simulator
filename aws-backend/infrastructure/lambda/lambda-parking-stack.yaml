@@ -35,6 +35,13 @@ Resources:
           IOT_ENDPOINT: !Sub "https://${IoTEndpointKey}"
       Role:
         Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
+      Events:
+        StartProcessingQueueTrigger:
+          Type: SQS
+          Properties:
+            Queue:
+              Fn::ImportValue: !Sub StartProcessingQueueArn-${EnvironmentKey}
+            BatchSize: 5
 
   GetDeviceShadowFunction:
     Type: AWS::Serverless::Function
