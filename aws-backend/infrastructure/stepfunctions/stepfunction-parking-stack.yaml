@@ -52,7 +52,7 @@ Resources:
                 Fn::ImportValue: !Sub StartProcessingQueueUrl-${EnvironmentKey}
               MessageBody:
                 devices.$: "$.devices"
-            Next: WaitForDelta
+            Next: WaitShadowSync
 
           WaitShadowSync:
             Type: Wait
