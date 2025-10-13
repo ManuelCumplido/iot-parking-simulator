@@ -31,18 +31,27 @@ Resources:
         Comment: "IoT Parking Simulation Flow"
         StartAt: UpdateDeviceShadow
         States:
-          UpdateDeviceShadow:
+          #UpdateDeviceShadow:
+          #  Type: Task
+          #  Resource: arn:aws:states:::lambda:invoke
+          #  TimeoutSeconds: 3
+          #  OutputPath: "$.Payload" # Extracts only the Lambda's response body (Payload) from the full Step Functions task output
+          #  Parameters:
+          #    FunctionName: 
+          #      Fn::ImportValue: !Sub UpdateDeviceShadowFunctionArn-${EnvironmentKey}
+          #    Payload:
+          #      slotId.$: "$.slotId"   # Dynamically passes the 'slotId' field from the state input to the Lambda payload
+          #      status.$: "$.status"   # Dynamically passes the 'status' field from the state input to the Lambda payload
+          #  Next: WaitShadowSync
+
+          SendToStartQueue:
             Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            TimeoutSeconds: 3
-            OutputPath: "$.Payload" # Extracts only the Lambda's response body (Payload) from the full Step Functions task output
+            Resource: arn:aws:states:::sqs:sendMessage
             Parameters:
-              FunctionName: 
-                Fn::ImportValue: !Sub UpdateDeviceShadowFunctionArn-${EnvironmentKey}
-              Payload:
-                slotId.$: "$.slotId"   # Dynamically passes the 'slotId' field from the state input to the Lambda payload
-                status.$: "$.status"   # Dynamically passes the 'status' field from the state input to the Lambda payload
-            Next: WaitShadowSync
+              QueueUrl: !Ref StartProcessingQueue
+              MessageBody:
+                devices.$: "$.devices"
+            Next: WaitForDelta
 
           WaitShadowSync:
             Type: Wait
