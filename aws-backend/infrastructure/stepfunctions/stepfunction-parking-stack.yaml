@@ -29,7 +29,7 @@ Resources:
         Fn::ImportValue: !Sub "StepFunctionExecutionRoleArn-${EnvironmentKey}"
       Definition:
         Comment: "IoT Parking Simulation Flow"
-        StartAt: SendToStartQueue
+        StartAt: SendDevicesToQueue
         States:
           #UpdateDeviceShadow:
           #  Type: Task
@@ -44,15 +44,24 @@ Resources:
           #      status.$: "$.status"   # Dynamically passes the 'status' field from the state input to the Lambda payload
           #  Next: WaitShadowSync
 
-          SendToStartQueue:
-            Type: Task
-            Resource: arn:aws:states:::sqs:sendMessage
+          SendDevicesToQueue:
+            Type: Map
+            ItemsPath: $.devices # Iterate over each device in the input array
             Parameters:
               QueueUrl:
-                Fn::ImportValue: !Sub StartProcessingQueueUrl-${EnvironmentKey}
-              MessageBody:
-                devices.$: "$.devices"
-            Next: WaitShadowSync
+                Fn::ImportValue: !Sub StartProcessingQueueUrl-${EnvironmentKey} # Import the SQS queue URL from the Messaging stack
+              MessageBody.$: "$"  # Pass the current device object (e.g., {"slotId":"PARK001","status":"occupied"}) as the message body
+            Iterator:
+              StartAt: SendSingleDevice  # Define the inner workflow for each device iteration
+              States:
+                SendSingleDevice:
+                  Type: Task
+                  Resource: arn:aws:states:::sqs:sendMessage
+                  Parameters:
+                    QueueUrl.$: "$.QueueUrl"  # Use the imported QueueUrl from the parent Parameters
+                    MessageBody.$: "$.MessageBody"  # Use the current iteration payload as the SQS message body
+                  End: true  # End this inner iteration
+            Next: WaitShadowSync  # Continue the main workflow once all messages are sent
 
           WaitShadowSync:
             Type: Wait
@@ -68,7 +77,7 @@ Resources:
               FunctionName:
                 Fn::ImportValue: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
               Payload:
-                slotId.$: "$.slotId"
+                slotId.$: "$.slotId"  # Pass the current slot ID to fetch its latest shadow state
             Next: CheckSync
             
           CheckSync:
