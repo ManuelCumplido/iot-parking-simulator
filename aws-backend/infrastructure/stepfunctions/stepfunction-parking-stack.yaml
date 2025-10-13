@@ -48,7 +48,8 @@ Resources:
             Type: Task
             Resource: arn:aws:states:::sqs:sendMessage
             Parameters:
-              QueueUrl: !Ref StartProcessingQueue
+              QueueUrl:
+                Fn::ImportValue: !Sub StartProcessingQueueUrl-${EnvironmentKey}
               MessageBody:
                 devices.$: "$.devices"
             Next: WaitForDelta
