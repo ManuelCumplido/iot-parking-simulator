@@ -29,7 +29,7 @@ Resources:
         Fn::ImportValue: !Sub "StepFunctionExecutionRoleArn-${EnvironmentKey}"
       Definition:
         Comment: "IoT Parking Simulation Flow"
-        StartAt: UpdateDeviceShadow
+        StartAt: SendToStartQueue
         States:
           #UpdateDeviceShadow:
           #  Type: Task
