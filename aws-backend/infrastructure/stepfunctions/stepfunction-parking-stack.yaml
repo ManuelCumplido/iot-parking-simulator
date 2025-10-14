@@ -20,7 +20,6 @@ Parameters:
 
 Resources:
 
-  # Step Function definition for IoT Parking flow
   ParkingStateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
@@ -31,77 +30,79 @@ Resources:
         Comment: "IoT Parking Simulation Flow"
         StartAt: SendDevicesToQueue
         States:
-          #UpdateDeviceShadow:
-          #  Type: Task
-          #  Resource: arn:aws:states:::lambda:invoke
-          #  TimeoutSeconds: 3
-          #  OutputPath: "$.Payload" # Extracts only the Lambda's response body (Payload) from the full Step Functions task output
-          #  Parameters:
-          #    FunctionName: 
-          #      Fn::ImportValue: !Sub UpdateDeviceShadowFunctionArn-${EnvironmentKey}
-          #    Payload:
-          #      slotId.$: "$.slotId"   # Dynamically passes the 'slotId' field from the state input to the Lambda payload
-          #      status.$: "$.status"   # Dynamically passes the 'status' field from the state input to the Lambda payload
-          #  Next: WaitShadowSync
 
+          # Iterate over each device independently
           SendDevicesToQueue:
             Type: Map
-            ItemsPath: $.devices  # Iterate over each device in the input array
+            ItemsPath: $.devices  # Each element in 'devices' is processed as a separate iteration
             Iterator:
               StartAt: SendSingleDevice
               States:
+
+                # Step 1: Send device payload to SQS
                 SendSingleDevice:
                   Type: Task
                   Resource: arn:aws:states:::sqs:sendMessage
                   Parameters:
                     QueueUrl:
-                      Fn::ImportValue: !Sub StartProcessingQueueUrl-${EnvironmentKey}  # Import the queue URL
-                    MessageBody.$: "$"  # "$" here now refers to the single current device (not the full array)
-                  End: true
-            Next: WaitShadowSync  # Continue after all SQS messages are sent
+                      Fn::ImportValue: !Sub StartProcessingQueueUrl-${EnvironmentKey}
+                    MessageBody.$: "$"  # "$" refers to the current device object (e.g. {slotId, status})
+                  Next: WaitShadowSync  # Continue to next step after message is sent
 
+                # Step 2: Wait before checking the shadow
+                WaitShadowSync:
+                  Type: Wait
+                  Seconds: 5
+                  Next: GetDeviceShadow
 
-          WaitShadowSync:
-            Type: Wait
-            Seconds: 5
-            Next: GetDeviceShadow
+                # Step 3: Retrieve device shadow
+                GetDeviceShadow:
+                  Type: Task
+                  Resource: arn:aws:states:::lambda:invoke
+                  TimeoutSeconds: 3
+                  OutputPath: "$.Payload"
+                  Parameters:
+                    FunctionName:
+                      Fn::ImportValue: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
+                    Payload:
+                      slotId.$: "$.slotId"  # Pass the current slotId for shadow retrieval
+                  Next: CheckSync
 
-          GetDeviceShadow:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            TimeoutSeconds: 3
-            OutputPath: "$.Payload"
-            Parameters:
-              FunctionName:
-                Fn::ImportValue: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
-              Payload:
-                slotId.$: "$.slotId"  # Pass the current slot ID to fetch its latest shadow state
-            Next: CheckSync
-            
-          CheckSync:
-            Type: Choice
-            Choices:
-              - Variable: "$.isSynced"
-                BooleanEquals: true
-                Next: EndSimulation
-            Default: SNSNotify
+                # Step 4: Validate synchronization
+                CheckSync:
+                  Type: Choice
+                  Choices:
+                    - Variable: "$.isSynced"
+                      BooleanEquals: true
+                      Next: EndDevice
+                  Default: SNSNotify
 
-          SNSNotify:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            TimeoutSeconds: 3
-            OutputPath: "$.Payload"
-            Parameters:
-              FunctionName:
-                Fn::ImportValue: !Sub SnsNotifyFunctionArn-${EnvironmentKey}
-              Payload:
-                slotId.$: "$.slotId"
-                message: "Shadow is not synchronized"
+                # Step 5: Send notification if not synced
+                SNSNotify:
+                  Type: Task
+                  Resource: arn:aws:states:::lambda:invoke
+                  TimeoutSeconds: 3
+                  OutputPath: "$.Payload"
+                  Parameters:
+                    FunctionName:
+                      Fn::ImportValue: !Sub SnsNotifyFunctionArn-${EnvironmentKey}
+                    Payload:
+                      slotId.$: "$.slotId"
+                      message: "Shadow is not synchronized"
+                  Next: EndDevice
+
+                # Step 6: End of single device flow
+                EndDevice:
+                  Type: Succeed
+                  Comment: "End of individual device iteration"
+
+            # Continue main flow after all devices are processed
             Next: EndSimulation
 
+          # Step 7: Final state (all devices done)
           EndSimulation:
             Type: Succeed
-            Comment: "Marks the end of the IoT Parking simulation"
+            Comment: "All device simulations completed"
 
       TracingConfiguration:
         Enabled: true
