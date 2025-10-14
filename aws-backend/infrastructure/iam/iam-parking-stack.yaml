@@ -46,7 +46,7 @@ Resources:
                   - rds-data:BatchExecuteStatement
                 Resource: "*"
 
-  ## Role for Step Function to invoke Lambdas
+  ## Role for Step Function to invoke Lambdas and interact with SQS
   StepFunctionExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -63,13 +63,17 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
       Policies:
-        - PolicyName: StepFunctionLambdaInvokePolicy
+        - PolicyName: StepFunctionCorePermissions
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
                 Resource: "*"
 
   ## Role for UpdateDeviceShadow Lambda
@@ -96,6 +100,12 @@ Resources:
               - Effect: Allow
                 Action:
                   - iot:UpdateThingShadow
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
                 Resource: "*"
 
   ## Role for GetDeviceShadow Lambda

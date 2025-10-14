@@ -1,0 +1,45 @@
+# SAM Template: Messaging Layer for Parking Simulator
+# Provisions SQS resources used in the IoT Parking demo.
+
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "Messaging Layer - SQS, SNS, DLQ for IoT Parking Simulator"
+
+Parameters:
+  EnvironmentKey:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment where this stack is deployed (dev/staging/prod)
+
+Resources:
+  ## Dead-Letter Queue (DLQ) for StartProcessingQueue
+  StartProcessingDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub start-processing-dlq-${EnvironmentKey}
+
+  ## Main queue that triggers the UpdateDeviceShadow Lambda
+  StartProcessingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub start-processing-queue-${EnvironmentKey}
+      VisibilityTimeout: 60          # 1 min; should match or exceed Lambda timeout
+      MessageRetentionPeriod: 300    # 5 min retention
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt StartProcessingDLQ.Arn
+        maxReceiveCount: 3
+
+Outputs:
+  StartProcessingQueueArn:
+    Value: !GetAtt StartProcessingQueue.Arn
+    Export:
+      Name: !Sub StartProcessingQueueArn-${EnvironmentKey}
+
+  StartProcessingQueueUrl:
+    Value: !Ref StartProcessingQueue
+    Export:
+      Name: !Sub StartProcessingQueueUrl-${EnvironmentKey}

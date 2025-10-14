@@ -41,3 +41,11 @@ region = "us-east-2"
 s3_bucket = "iot-parking-infra-artifacts-dev"
 capabilities = "CAPABILITY_NAMED_IAM"
 confirm_changeset = true
+
+[messaging-dev.deploy.parameters]
+stack_name = "messaging-parking-stack"
+template_file = "infrastructure/messaging/messaging-parking-stack.yaml"
+region = "us-east-2"
+s3_bucket = "iot-parking-infra-artifacts-dev"
+capabilities = "CAPABILITY_NAMED_IAM"
+confirm_changeset = true

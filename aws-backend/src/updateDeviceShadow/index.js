@@ -13,26 +13,27 @@ const iotData = new IoTDataPlaneClient({ endpoint: process.env.IOT_ENDPOINT });
 exports.handler = async (event) => {
   console.log("UpdateDeviceShadow input:", event);
 
-  const { slotId, status } = event;
-
-  // Define the new desired state payload for the device shadow
-  const payload = {
-    state: { desired: { status } },
-  };
-
-  const params = {
-    thingName: slotId,
-    payload: Buffer.from(JSON.stringify(payload)),
-  };
-
   try {
-    // Send the update request to AWS IoT Core
-    await iotData.send(new UpdateThingShadowCommand(params));
-    console.log(`Desired state updated for ${slotId}: ${status}`);
+    for (const record of event.Records) {
 
-    return { slotId, status, message: "Desired state updated" };
-  } catch (error) {
+      const { slotId, status } = JSON.parse(record.body);
+
+      const params = {
+        thingName: slotId,
+        payload: Buffer.from(JSON.stringify({
+          state: { desired: { status } }
+        }))
+      };
+
+      await iotData.send(new UpdateThingShadowCommand(params));
+
+      console.log(`Desired state updated for ${slotId}: ${status}`);
+    }
+  }catch (error) {
     console.error("UpdateDeviceShadow error:", error);
     throw error;
   }
+
+  return { slotId, status, message: "Desired state updated" };
+
 };

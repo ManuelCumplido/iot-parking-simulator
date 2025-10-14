@@ -60,6 +60,7 @@ jobs:
           sam validate --lint --template-file infrastructure/iot/iot-parking-stack.yaml
           sam validate --lint --template-file infrastructure/lambda/lambda-parking-stack.yaml
           sam validate --lint --template-file infrastructure/stepfunctions/stepfunction-parking-stack.yaml
+          sam validate --lint --template-file infrastructure/messaging/messaging-parking-stack.yaml
 
 #  integration-tests:
 #    runs-on: ubuntu-latest
@@ -130,6 +131,11 @@ jobs:
       - name: Deploy RDS stack
         working-directory: aws-backend # aws-backend/infrastructure/database
         run: sam deploy --config-file samconfig-dev.toml --config-env rds-dev --no-confirm-changeset --no-fail-on-empty-changeset
+
+      # Deploy Messaging stack (sqs, sns)
+      - name: Deploy Messaging stack
+        working-directory: aws-backend # aws-backend/infrastructure/iot
+        run: sam deploy --config-file samconfig-dev.toml --config-env messaging-dev --no-confirm-changeset --no-fail-on-empty-changeset
 
       # Deploy Lambdas
       - name: Deploy Lambdas stack
