@@ -46,8 +46,9 @@ Resources:
                   Parameters:
                     QueueUrl:
                       Fn::ImportValue: !Sub StartProcessingQueueUrl-${EnvironmentKey}
-                    MessageBody.$: "$"  # "$" refers to the current device object (e.g. {slotId, status})
-                  Next: WaitShadowSync  # Continue to next step after message is sent
+                    MessageBody.$: "$"       # "$" refers to the current device object (e.g. {slotId, status})
+                  ResultPath: "$.sqsResult"  # preserve the original input
+                  Next: WaitShadowSync       # Continue to next step after message is sent
 
                 # Step 2: Wait before checking the shadow
                 WaitShadowSync:
