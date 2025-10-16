@@ -21,6 +21,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Sub start-processing-dlq-${EnvironmentKey}
+      MessageRetentionPeriod: 345600  # 4 days (default)
 
   ## Main queue that triggers the UpdateDeviceShadow Lambda
   StartProcessingQueue:
@@ -31,7 +32,7 @@ Resources:
       MessageRetentionPeriod: 300    # 5 min retention
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt StartProcessingDLQ.Arn
-        maxReceiveCount: 3
+        maxReceiveCount: 3 # Number of failed processing attempts before moving the message to the Dead Letter Queue
 
 Outputs:
   StartProcessingQueueArn:
