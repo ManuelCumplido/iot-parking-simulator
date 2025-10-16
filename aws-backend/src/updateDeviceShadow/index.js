@@ -18,6 +18,12 @@ exports.handler = async (event) => {
 
       const { slotId, status } = JSON.parse(record.body);
 
+      // Simulate failure for testing DLQ
+      if (slotId === "FAIL_TEST") {
+        console.log("Forcing an error for DLQ test...");
+        throw new Error("Simulated failure for DLQ test");
+      }
+
       const params = {
         thingName: slotId,
         payload: Buffer.from(JSON.stringify({
@@ -29,7 +35,7 @@ exports.handler = async (event) => {
 
       console.log(`Desired state updated for ${slotId}: ${status}`);
     }
-  }catch (error) {
+  } catch (error) {
     console.error("UpdateDeviceShadow error:", error);
     throw error;
   }
