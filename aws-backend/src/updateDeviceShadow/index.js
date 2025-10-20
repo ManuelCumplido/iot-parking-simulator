@@ -26,11 +26,11 @@ exports.handler = async (event) => {
   const credentials = await getDbCredentials(secretArn);
 
   const client = new Client({
-    host: credentials.host,
+    host: process.env.DB_HOST,
     user: credentials.username,
     password: credentials.password,
     database: dbName,
-    port: credentials.port || 5432,
+    port: 5432,
     ssl: { rejectUnauthorized: false },
   });
 

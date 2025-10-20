@@ -36,6 +36,8 @@ Resources:
           DB_SECRET_ARN:
             Fn::ImportValue: !Sub ParkingDBSecret-${EnvironmentKey}
           DB_NAME: "parkingdb"
+          DB_HOST:
+            Fn::ImportValue: !Sub ParkingDBEndpoint-${EnvironmentKey}
       Role:
         Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
       Layers:
