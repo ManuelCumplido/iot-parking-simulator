@@ -38,6 +38,8 @@ Resources:
           DB_NAME: "parkingdb"
       Role:
         Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
+      Layers:
+        - !Ref NodePgLayer
       Events:
         StartProcessingQueueTrigger:
           Type: SQS
