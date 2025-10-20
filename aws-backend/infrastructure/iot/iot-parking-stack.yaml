@@ -133,3 +133,9 @@ Outputs:
     Value: !GetAtt ParkingIoTRule.Arn
   IoTIngestionLambdaArn:
     Value: !GetAtt IoTIngestionFunction.Arn
+
+  NodePgLayerArn:
+    Description: ARN of the NodePg Lambda Layer
+    Value: !Ref NodePgLayer
+    Export:
+      Name: !Sub NodePgLayerArn-${EnvironmentKey}

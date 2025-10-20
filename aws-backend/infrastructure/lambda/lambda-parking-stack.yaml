@@ -39,7 +39,7 @@ Resources:
       Role:
         Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
       Layers:
-        - !Ref NodePgLayer
+        - Fn::ImportValue: !Sub NodePgLayerArn-${EnvironmentKey}
       Events:
         StartProcessingQueueTrigger:
           Type: SQS
