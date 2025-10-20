@@ -46,27 +46,6 @@ Resources:
       ContentUri: ../../infrastructure/layers/aws-sdk-v3
       CompatibleRuntimes:
         - nodejs20.x
-      
-  ## IoT Rule (directly invokes the Lambda)
-  ParkingIoTRule:
-    Type: AWS::IoT::TopicRule
-    Properties:
-      RuleName: !Sub parkingStatusRule${EnvironmentKey}
-      TopicRulePayload:
-        Sql: "SELECT * FROM 'parking/+/status'"
-        AwsIotSqlVersion: "2016-03-23"
-        Actions:
-          - Lambda:
-              FunctionArn: !GetAtt IoTIngestionFunction.Arn
-
-  ## Permission for IoT Core to invoke the Lambda
-  IoTInvokeLambdaPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref IoTIngestionFunction
-      Principal: iot.amazonaws.com
-      SourceArn: !GetAtt ParkingIoTRule.Arn
 
   ## IoT Rule: triggers when a thing shadow delta is generated
   ShadowDeltaIoTRule:
@@ -97,7 +76,3 @@ Outputs:
     Value: !Ref ParkingThing
   PolicyName:
     Value: !Ref ParkingIoTPolicy
-  IoTRuleArn:
-    Value: !GetAtt ParkingIoTRule.Arn
-  IoTIngestionLambdaArn:
-    Value: !GetAtt IoTIngestionFunction.Arn
