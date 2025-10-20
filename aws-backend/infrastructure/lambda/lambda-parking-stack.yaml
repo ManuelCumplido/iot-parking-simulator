@@ -39,7 +39,7 @@ Resources:
       Role:
         Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
       Layers:
-        - Fn::ImportValue: !Sub NodePgLayerArn-${EnvironmentKey}
+        - !Ref NodePgLayer
       Events:
         StartProcessingQueueTrigger:
           Type: SQS
@@ -76,6 +76,15 @@ Resources:
       CodeUri: ../../src/snsNotify/
       Role:
         Fn::ImportValue: !Sub SnsNotifyLambdaRoleArn-${EnvironmentKey}
+
+  NodePgLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub node-pg-layer-${EnvironmentKey}
+      Description: PostgreSQL client (pg) for Lambda
+      ContentUri: ../../infrastructure/layers/node-pg
+      CompatibleRuntimes:
+        - nodejs20.x
 
 Outputs:
   UpdateDeviceShadowFunctionArn:
