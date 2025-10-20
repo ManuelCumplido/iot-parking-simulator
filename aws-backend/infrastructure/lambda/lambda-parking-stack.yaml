@@ -33,6 +33,9 @@ Resources:
       Environment:
         Variables:
           IOT_ENDPOINT: !Sub "https://${IoTEndpointKey}"
+          DB_SECRET_ARN:
+            Fn::ImportValue: !Sub ParkingDBSecret-${EnvironmentKey}
+          DB_NAME: "parkingdb"
       Role:
         Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
       Events:
