@@ -38,15 +38,6 @@ Resources:
               - iot:Receive
             Resource: "*"
 
-  NodePgLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: !Sub node-pg-layer-${EnvironmentKey}
-      Description: PostgreSQL client (pg) for Lambda
-      ContentUri: ../../infrastructure/layers/node-pg
-      CompatibleRuntimes:
-        - nodejs20.x
-
   AwsSdkV3Layer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -55,29 +46,6 @@ Resources:
       ContentUri: ../../infrastructure/layers/aws-sdk-v3
       CompatibleRuntimes:
         - nodejs20.x
-
-  ## Lambda for IoT ingestion
-  IoTIngestionFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub iot-ingestion-${EnvironmentKey}
-      CodeUri: ../../src/iot-ingestion/
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Timeout: 3
-      Role:
-        Fn::ImportValue: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
-      Layers:
-        - !Ref NodePgLayer
-        - !Ref AwsSdkV3Layer
-      Environment:
-        Variables:
-          DB_HOST:
-            Fn::ImportValue: !Sub "ParkingDBEndpoint-${EnvironmentKey}"
-          DB_NAME:
-            Fn::ImportValue: !Sub "ParkingDBName-${EnvironmentKey}"
-          DB_SECRET:
-            Fn::ImportValue: !Sub "ParkingDBSecret-${EnvironmentKey}"
       
   ## IoT Rule (directly invokes the Lambda)
   ParkingIoTRule:
@@ -133,9 +101,3 @@ Outputs:
     Value: !GetAtt ParkingIoTRule.Arn
   IoTIngestionLambdaArn:
     Value: !GetAtt IoTIngestionFunction.Arn
-
-  NodePgLayerArn:
-    Description: ARN of the NodePg Lambda Layer
-    Value: !Ref NodePgLayer
-    Export:
-      Name: !Sub NodePgLayerArn-${EnvironmentKey}
