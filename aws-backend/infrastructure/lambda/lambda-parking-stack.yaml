@@ -33,15 +33,8 @@ Resources:
       Environment:
         Variables:
           IOT_ENDPOINT: !Sub "https://${IoTEndpointKey}"
-          DB_SECRET_ARN:
-            Fn::ImportValue: !Sub ParkingDBSecret-${EnvironmentKey}
-          DB_NAME: "parkingdb"
-          DB_HOST:
-            Fn::ImportValue: !Sub ParkingDBEndpoint-${EnvironmentKey}
       Role:
         Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
-      Layers:
-        - !Ref NodePgLayer
       Events:
         StartProcessingQueueTrigger:
           Type: SQS
@@ -58,8 +51,15 @@ Resources:
       Environment:
         Variables:
           IOT_ENDPOINT: !Sub "https://${IoTEndpointKey}"
+          DB_SECRET_ARN:
+            Fn::ImportValue: !Sub ParkingDBSecret-${EnvironmentKey}
+          DB_NAME: "parkingdb"
+          DB_HOST:
+            Fn::ImportValue: !Sub ParkingDBEndpoint-${EnvironmentKey}
       Role:
         Fn::ImportValue: !Sub GetDeviceShadowLambdaRoleArn-${EnvironmentKey}
+      Layers:
+        - !Ref NodePgLayer
 
   ## Lambda for handling shadow delta updates
   ShadowDeltaHandlerFunction:
