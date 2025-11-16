@@ -38,15 +38,6 @@ Resources:
               - iot:Receive
             Resource: "*"
 
-  NodePgLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: !Sub node-pg-layer-${EnvironmentKey}
-      Description: PostgreSQL client (pg) for Lambda
-      ContentUri: ../../infrastructure/layers/node-pg
-      CompatibleRuntimes:
-        - nodejs20.x
-
   AwsSdkV3Layer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -55,50 +46,6 @@ Resources:
       ContentUri: ../../infrastructure/layers/aws-sdk-v3
       CompatibleRuntimes:
         - nodejs20.x
-
-  ## Lambda for IoT ingestion
-  IoTIngestionFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub iot-ingestion-${EnvironmentKey}
-      CodeUri: ../../src/iot-ingestion/
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Timeout: 3
-      Role:
-        Fn::ImportValue: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
-      Layers:
-        - !Ref NodePgLayer
-        - !Ref AwsSdkV3Layer
-      Environment:
-        Variables:
-          DB_HOST:
-            Fn::ImportValue: !Sub "ParkingDBEndpoint-${EnvironmentKey}"
-          DB_NAME:
-            Fn::ImportValue: !Sub "ParkingDBName-${EnvironmentKey}"
-          DB_SECRET:
-            Fn::ImportValue: !Sub "ParkingDBSecret-${EnvironmentKey}"
-      
-  ## IoT Rule (directly invokes the Lambda)
-  ParkingIoTRule:
-    Type: AWS::IoT::TopicRule
-    Properties:
-      RuleName: !Sub parkingStatusRule${EnvironmentKey}
-      TopicRulePayload:
-        Sql: "SELECT * FROM 'parking/+/status'"
-        AwsIotSqlVersion: "2016-03-23"
-        Actions:
-          - Lambda:
-              FunctionArn: !GetAtt IoTIngestionFunction.Arn
-
-  ## Permission for IoT Core to invoke the Lambda
-  IoTInvokeLambdaPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref IoTIngestionFunction
-      Principal: iot.amazonaws.com
-      SourceArn: !GetAtt ParkingIoTRule.Arn
 
   ## IoT Rule: triggers when a thing shadow delta is generated
   ShadowDeltaIoTRule:
@@ -129,7 +76,3 @@ Outputs:
     Value: !Ref ParkingThing
   PolicyName:
     Value: !Ref ParkingIoTPolicy
-  IoTRuleArn:
-    Value: !GetAtt ParkingIoTRule.Arn
-  IoTIngestionLambdaArn:
-    Value: !GetAtt IoTIngestionFunction.Arn
