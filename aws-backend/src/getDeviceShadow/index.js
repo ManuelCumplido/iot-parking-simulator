@@ -44,30 +44,39 @@ exports.handler = async (event) => {
 
   try {
     const { slotId } = event;
+    let reported
+    let isSynced
 
-    // Fetch the latest device shadow document from AWS IoT Core
-    const data = await iotData.send(new GetThingShadowCommand({ thingName: slotId }));
+    if (slotId !== "FAIL_TEST") {
 
-    // Parse the shadow payload into a JSON object
-    const shadow = JSON.parse(Buffer.from(data.payload).toString());
-    console.log("Shadow content:", JSON.stringify(shadow, null, 2));
+      // Fetch the latest device shadow document from AWS IoT Core
+      const data = await iotData.send(new GetThingShadowCommand({ thingName: slotId }));
 
-    // Extract desired and reported values for validation
-    const desired = shadow.state?.desired?.status;
-    const reported = shadow.state?.reported?.status;
-    const isSynced = desired === reported;
+      // Parse the shadow payload into a JSON object
+      const shadow = JSON.parse(Buffer.from(data.payload).toString());
+      console.log("Shadow content:", JSON.stringify(shadow, null, 2));
 
-    console.log(`Shadow sync status for ${slotId}: desired=${desired}, reported=${reported}, isSynced=${isSynced}`);
+      // Extract desired and reported values for validation
+      const desired = shadow.state?.desired?.status;
+      reported = shadow.state?.reported?.status;
+      isSynced = desired === reported;
+
+      console.log(`Shadow sync status for ${slotId}: desired=${desired}, reported=${reported}, isSynced=${isSynced}`);
+    } else {
+      isSynced = false;
+      reported = "FAIL_TEST";
+      console.log(`Shadow sync status for ${slotId}: isSynced=${isSynced}`);
+    }
 
     const shadow_status = isSynced ? "synced" : "not_synced"
 
     const timestamp = new Date().toISOString();
-      const query = 
-        `INSERT INTO parking_logs (slot_id, status, timestamp, shadow_status)
+    const query =
+      `INSERT INTO parking_logs (slot_id, status, timestamp, shadow_status)
         VALUES ($1, $2, $3, $4)`;
 
-      await client.query(query, [slotId, reported, timestamp, shadow_status]);
-      console.log(`Saved in RDS: ${slotId} -> ${reported} at ${timestamp}`);
+    await client.query(query, [slotId, reported, timestamp, shadow_status]);
+    console.log(`Saved in RDS: ${slotId} -> ${reported} at ${timestamp}`);
 
     // Return the relevant state information
     return { slotId, isSynced };
