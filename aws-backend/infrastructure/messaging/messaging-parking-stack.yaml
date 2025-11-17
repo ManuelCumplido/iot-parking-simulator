@@ -1,5 +1,5 @@
 # SAM Template: Messaging Layer for Parking Simulator
-# Provisions SQS resources used in the IoT Parking demo.
+# Provisions SQS resources and SNS Topic for IoT Parking demo.
 
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
@@ -34,6 +34,21 @@ Resources:
         deadLetterTargetArn: !GetAtt StartProcessingDLQ.Arn
         maxReceiveCount: 3 # Number of failed processing attempts before moving the message to the Dead Letter Queue
 
+  ## SNS Topic that send email notifications
+  ParkingNotifyTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub parking-notify-topic-${EnvironmentKey}
+
+  ## SNS Subscription
+  ParkingNotifySubscriptionEmail:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      TopicArn: !Ref ParkingNotifyTopic
+      Endpoint: "manuelcumplido.9@gmail.com"
+
+
 Outputs:
   StartProcessingQueueArn:
     Value: !GetAtt StartProcessingQueue.Arn
@@ -44,3 +59,8 @@ Outputs:
     Value: !Ref StartProcessingQueue
     Export:
       Name: !Sub StartProcessingQueueUrl-${EnvironmentKey}
+
+  ParkingNotifyTopicArn:
+    Value: !Ref ParkingNotifyTopic
+    Export:
+      Name: !Sub ParkingNotifyTopicArn-${EnvironmentKey}
