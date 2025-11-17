@@ -187,7 +187,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - sns:Publish
-                Resources:
+                Resource:
                   Fn::ImportValue: !Sub ParkingNotifyTopicArn-${EnvironmentKey}
 
 Outputs:
