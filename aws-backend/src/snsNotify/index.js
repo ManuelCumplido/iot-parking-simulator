@@ -12,7 +12,7 @@ exports.handler = async (event) => {
       timestamp: new Date().toISOString(),
       slotId: event.slotId || "UnknownSlot",
       deviceId: event.deviceId || "UnknownDevice",
-      isSynced: event.isSynced ?? null
+      message: event.message ?? null
     };
 
     console.log("Publishing SNS notification:", notification);
