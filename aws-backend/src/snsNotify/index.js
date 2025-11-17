@@ -1,11 +1,40 @@
-// snsNotify.js
+const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
+
+const sns = new SNSClient();
+
 exports.handler = async (event) => {
-  console.log("SNSNotify input:", event);
+  console.log("SNSNotify input:", JSON.stringify(event));
 
-  const slotId = event.slotId || "UnknownSlot";
-  const message = event.message || "Simulation completed";
+  try {
+    const topicArn = process.env.SNS_TOPIC_ARN;
 
-  console.log(`Notification → Slot: ${slotId}, Message: ${message}`);
+    const notification = {
+      timestamp: new Date().toISOString(),
+      slotId: event.slotId || "UnknownSlot",
+      deviceId: event.deviceId || "UnknownDevice",
+      isSynced: event.isSynced ?? null
+    };
 
-    return { success: true };
+    console.log("Publishing SNS notification:", notification);
+
+    const params = new PublishCommand({
+      TopicArn: topicArn,
+      Subject: `Parking Simulator – Device Sync Issue (${notification.deviceId})`,
+      Message: JSON.stringify(notification, null, 2),
+    });
+
+    await sns.send(params);
+
+    return {
+      success: true
+    };
+
+  } catch (error) {
+    console.error("SNS Notify Error:", error);
+
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
 };
