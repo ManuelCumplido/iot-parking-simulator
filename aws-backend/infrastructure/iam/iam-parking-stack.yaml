@@ -187,7 +187,8 @@ Resources:
               - Effect: Allow
                 Action:
                   - sns:Publish
-                Resource: "*"
+                Resources:
+                  Fn::ImportValue: !Sub ParkingNotifyTopicArn-${EnvironmentKey}
 
 Outputs:
   IoTIngestionLambdaRoleArn:
