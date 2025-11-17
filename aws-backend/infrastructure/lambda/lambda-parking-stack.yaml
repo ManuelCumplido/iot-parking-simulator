@@ -76,6 +76,10 @@ Resources:
     Properties:
       FunctionName: !Sub snsNotify-${EnvironmentKey}
       CodeUri: ../../src/snsNotify/
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN:
+            Fn::ImportValue: !Sub ParkingNotifyTopicArn-${EnvironmentKey}
       Role:
         Fn::ImportValue: !Sub SnsNotifyLambdaRoleArn-${EnvironmentKey}
 
