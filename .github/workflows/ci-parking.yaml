@@ -122,6 +122,11 @@ jobs:
         working-directory: aws-backend/infrastructure/layers/aws-sdk-v3/nodejs
         run: npm install
 
+      # Deploy Messaging stack (sqs, sns)
+      - name: Deploy Messaging stack
+        working-directory: aws-backend # aws-backend/infrastructure/messaging
+        run: sam deploy --config-file samconfig-dev.toml --config-env messaging-dev --no-confirm-changeset --no-fail-on-empty-changeset
+
       # Deploy IAM stack (using the iam-dev section from samconfig-dev.toml)
       - name: Deploy IAM stack
         working-directory: aws-backend
@@ -131,11 +136,6 @@ jobs:
       - name: Deploy RDS stack
         working-directory: aws-backend # aws-backend/infrastructure/database
         run: sam deploy --config-file samconfig-dev.toml --config-env rds-dev --no-confirm-changeset --no-fail-on-empty-changeset
-
-      # Deploy Messaging stack (sqs, sns)
-      - name: Deploy Messaging stack
-        working-directory: aws-backend # aws-backend/infrastructure/iot
-        run: sam deploy --config-file samconfig-dev.toml --config-env messaging-dev --no-confirm-changeset --no-fail-on-empty-changeset
 
       # Deploy Lambdas
       - name: Deploy Lambdas stack
