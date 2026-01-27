@@ -11,16 +11,30 @@ exports.handler = async (event) => {
     const notification = {
       timestamp: new Date().toISOString(),
       slotId: event.slotId || "UnknownSlot",
-      deviceId: event.deviceId || "UnknownDevice",
       message: event.message ?? null
     };
 
     console.log("Publishing SNS notification:", notification);
 
+    const message = `Parking Simulator Notification
+
+A device synchronization issue has been detected in the IoT Parking Simulation.
+
+Details:
+- Slot ID: ${notification.slotId}
+- Timestamp: ${notification.timestamp}
+
+Message:
+${notification.message}
+
+This notification was generated automatically by the Parking Simulation workflow.
+Please review the device shadow status and take action if necessary.
+`
+
     const params = new PublishCommand({
       TopicArn: topicArn,
-      Subject: `Parking Simulator – Device Sync Issue (${notification.deviceId})`,
-      Message: JSON.stringify(notification, null, 2),
+      Subject: `Parking Simulator – Device Sync Issue (${notification.slotId})`,
+      Message: message,
     });
 
     await sns.send(params);
