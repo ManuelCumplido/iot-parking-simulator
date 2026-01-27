@@ -65,7 +65,7 @@ Resources:
                     FunctionName:
                       Fn::ImportValue: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
                     Payload.$: "$"
-                    ResultPath: "$.shadow" 
+                  ResultPath: "$.shadow" 
                   Next: CheckSync
 
                 # Step 4: Validate synchronization
@@ -82,7 +82,6 @@ Resources:
                   Type: Task
                   Resource: arn:aws:states:::lambda:invoke
                   TimeoutSeconds: 3
-                  OutputPath: "$.Payload"
                   Parameters:
                     FunctionName:
                       Fn::ImportValue: !Sub SnsNotifyFunctionArn-${EnvironmentKey}
@@ -91,6 +90,7 @@ Resources:
                       status.$: "$.status"
                       deviceId.$: "$.slotId"
                       message: "Shadow is not synchronized"
+                  ResultPath: "$.sns"
                   Next: EndDevice
 
                 # Step 6: End of single device flow
