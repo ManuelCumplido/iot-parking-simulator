@@ -61,19 +61,18 @@ Resources:
                   Type: Task
                   Resource: arn:aws:states:::lambda:invoke
                   TimeoutSeconds: 3
-                  OutputPath: "$.Payload"
                   Parameters:
                     FunctionName:
                       Fn::ImportValue: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
-                    Payload:
-                      slotId.$: "$.slotId"  # Pass the current slotId for shadow retrieval
+                    Payload.$: "$"
+                    ResultPath: "$.shadow" 
                   Next: CheckSync
 
                 # Step 4: Validate synchronization
                 CheckSync:
                   Type: Choice
                   Choices:
-                    - Variable: "$.isSynced"
+                    - Variable: "$.shadow.Payload.isSynced"
                       BooleanEquals: true
                       Next: EndDevice
                   Default: SNSNotify
@@ -89,6 +88,8 @@ Resources:
                       Fn::ImportValue: !Sub SnsNotifyFunctionArn-${EnvironmentKey}
                     Payload:
                       slotId.$: "$.slotId"
+                      status.$: "$.status"
+                      deviceId.$: "$.slotId"
                       message: "Shadow is not synchronized"
                   Next: EndDevice
 
