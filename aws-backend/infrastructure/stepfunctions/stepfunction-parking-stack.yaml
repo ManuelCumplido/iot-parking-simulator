@@ -1,8 +1,14 @@
 # SAM Template: Parking Step Function (IoT Parking Simulation)
-# Provisions an AWS Step Functions State Machine to orchestrate the IoT Parking demo flow.
-# The flow updates the Device Shadow, waits for synchronization, retrieves state, updates DB, and notifies SNS.
-# Integrates with existing Lambda functions (UpdateDeviceShadow, GetShadow, UpdateDB, SNSNotify).
-# Optimized for demo: Manual trigger, simple retry, and loop simulation.
+# Purpose:
+# - Orchestrate a demo flow per device:
+#   1) Enqueue device event to SQS (decouple / async processing)
+#   2) Poll shadow sync status with a bounded retry loop
+#   3) Updates DB
+#   4) Notify (SNS) only if shadow did not sync after max attempts
+#
+# Notes:
+# - Integrates with existing Lambda functions (UpdateDeviceShadow, GetShadow, UpdateDB, SNSNotify).
+# - Each device is processed independently inside a Map state.
 
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -39,7 +45,7 @@ Resources:
               StartAt: SendSingleDevice
               States:
 
-                # Step 1: Send device payload to SQS
+                # Enqueue device payload into SQS.
                 SendSingleDevice:
                   Type: Task
                   Resource: arn:aws:states:::sqs:sendMessage
@@ -48,15 +54,25 @@ Resources:
                       Fn::ImportValue: !Sub StartProcessingQueueUrl-${EnvironmentKey}
                     MessageBody.$: "$"       # "$" refers to the current device object (e.g. {slotId, status})
                   ResultPath: "$.sqsResult"  # preserve the original input
-                  Next: WaitShadowSync       # Continue to next step after message is sent
+                  Next: InitRetry       # Continue to next step after message is sent
 
-                # Step 2: Wait before checking the shadow
-                WaitShadowSync:
-                  Type: Wait
-                  Seconds: 5
+                # Initialize retry counter per device
+                InitRetry:
+                  Type: Pass
+                  Parameters:
+                    slotId.$: "$.slotId"
+                    status.$: "$.status"
+                    sqsResult.$: "$.sqsResult"
+                    retry:
+                      attempt: 0
+                      maxAttempts: 5
+                      waitSeconds: 5
+                      # maxAttempts=5 with waitSeconds=5 => ~20s waiting (4 waits), plus Lambda time
+                  ResultPath: "$"
                   Next: GetDeviceShadow
 
-                # Step 3: Retrieve device shadow
+                # Call Lambda to read the device shadow state.
+                # - Expected output shape: shadow.Payload.isSynced = true|false
                 GetDeviceShadow:
                   Type: Task
                   Resource: arn:aws:states:::lambda:invoke
@@ -66,18 +82,51 @@ Resources:
                       Fn::ImportValue: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
                     Payload.$: "$"
                   ResultPath: "$.shadow" 
+                  Next: IncrementAttempt
+
+                # Increment attempt counter after each shadow read.
+                IncrementAttempt:
+                  Type: Pass
+                  Parameters:
+                    slotId.$: "$.slotId"
+                    status.$: "$.status"
+                    sqsResult.$: "$.sqsResult"
+                    shadow.$: "$.shadow"
+                    retry:
+                      attempt.$: "States.MathAdd($.retry.attempt, 1)"
+                      maxAttempts.$: "$.retry.maxAttempts"
+                      waitSeconds.$: "$.retry.waitSeconds"
+                  ResultPath: "$"
                   Next: CheckSync
 
-                # Step 4: Validate synchronization
+                # Validate synchronization - If shadow is synced, end successfully (no SNS notification).
                 CheckSync:
                   Type: Choice
                   Choices:
                     - Variable: "$.shadow.Payload.isSynced"
                       BooleanEquals: true
                       Next: EndDevice
+                  # Not synced -> decide if we retry or notify (timeout)
+                  Default: CheckAttempts
+
+                # Retry gate:
+                # - attempt < maxAttempts => wait and retry GetDeviceShadow
+                # - else => SNSNotify (timeout)
+                CheckAttempts:
+                  Type: Choice
+                  Choices:
+                    - Variable: "$.retry.attempt"
+                      NumericLessThanPath: "$.retry.maxAttempts"
+                      Next: WaitBeforeRetry
                   Default: SNSNotify
 
-                # Step 5: Send notification if not synced
+                # Wait before next retry
+                WaitBeforeRetry:
+                  Type: Wait
+                  SecondsPath: "$.retry.waitSeconds"
+                  Next: GetDeviceShadow
+
+                # Send notification only after max attempts (timeout)
                 SNSNotify:
                   Type: Task
                   Resource: arn:aws:states:::lambda:invoke
@@ -89,11 +138,13 @@ Resources:
                       slotId.$: "$.slotId"
                       status.$: "$.status"
                       deviceId.$: "$.slotId"
-                      message: "Shadow is not synchronized"
+                      attempts.$: "$.retry.attempt"
+                      maxAttempts.$: "$.retry.maxAttempts"
+                      message: "Shadow is not synchronized after max retries"
                   ResultPath: "$.sns"
                   Next: EndDevice
 
-                # Step 6: End of single device flow
+                # End of single device flow
                 EndDevice:
                   Type: Succeed
                   Comment: "End of individual device iteration"
