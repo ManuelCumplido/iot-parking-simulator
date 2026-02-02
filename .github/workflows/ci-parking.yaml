@@ -59,6 +59,8 @@ jobs:
           sam validate --lint --template-file infrastructure/iam/iam-parking-stack.yaml
           sam validate --lint --template-file infrastructure/iot/iot-parking-stack.yaml
           sam validate --lint --template-file infrastructure/lambda/lambda-parking-stack.yaml
+          sam validate --lint --template-file infrastructure/stepfunctions/stepfunction-parking-stack.yaml
+          sam validate --lint --template-file infrastructure/messaging/messaging-parking-stack.yaml
 
 #  integration-tests:
 #    runs-on: ubuntu-latest
@@ -120,6 +122,11 @@ jobs:
         working-directory: aws-backend/infrastructure/layers/aws-sdk-v3/nodejs
         run: npm install
 
+      # Deploy Messaging stack (sqs, sns)
+      - name: Deploy Messaging stack
+        working-directory: aws-backend # aws-backend/infrastructure/messaging
+        run: sam deploy --config-file samconfig-dev.toml --config-env messaging-dev --no-confirm-changeset --no-fail-on-empty-changeset
+
       # Deploy IAM stack (using the iam-dev section from samconfig-dev.toml)
       - name: Deploy IAM stack
         working-directory: aws-backend
@@ -130,15 +137,20 @@ jobs:
         working-directory: aws-backend # aws-backend/infrastructure/database
         run: sam deploy --config-file samconfig-dev.toml --config-env rds-dev --no-confirm-changeset --no-fail-on-empty-changeset
 
+      # Deploy Lambdas
+      - name: Deploy Lambdas stack
+        working-directory: aws-backend
+        run: sam deploy --config-file samconfig-dev.toml --config-env lambda-dev --no-confirm-changeset --no-fail-on-empty-changeset
+
       # Deploy IoT Core stack (things, policies, rules, shadows, topics)
       - name: Deploy IoT stack
         working-directory: aws-backend # aws-backend/infrastructure/iot
         run: sam deploy --config-file samconfig-dev.toml --config-env iot-dev --no-confirm-changeset --no-fail-on-empty-changeset
 
-      ## Deploy Lambdas
-      #- name: Deploy Lambdas stack
-      #  working-directory: aws-backend
-      #  run: sam deploy --config-file samconfig-dev.toml --config-env api-dev --no-confirm-changeset --no-fail-on-empty-changeset
+      # Deploy Step Function stack
+      - name: Deploy Step Function stack
+        working-directory: aws-backend # aws-backend/infrastructure/stepfunctions
+        run: sam deploy --config-file samconfig-dev.toml --config-env stepfunction-dev --no-confirm-changeset --no-fail-on-empty-changeset
 
       ## (Optional) Deploy Step Functions / EventBridge (for orchestration)
       #- name: Deploy Orchestration stack

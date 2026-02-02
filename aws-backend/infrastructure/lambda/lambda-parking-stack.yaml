@@ -10,32 +10,109 @@ Parameters:
       - dev
       - staging
       - prod
+  IoTEndpointKey:
+    Type: String
+    Default: a32j14dxvrqa8a-ats.iot.us-east-2.amazonaws.com
+
+Globals:
+  Function:
+    Runtime: nodejs20.x       # Default runtime for all Lambda functions (Node.js 20)
+    Handler: index.handler    # Standard entry point (index.js with "exports.handler")
+    MemorySize: 128           # Default memory allocation in MB (lightweight baseline)
+    Timeout: 3                # Maximum execution time in seconds (prevents long-running tasks)
+    Tracing: Active           # Enables AWS X-Ray tracing for all Lambda functions
+    Tags:
+      Project: ParkingSimulator 
 
 Resources:
-  IoTIngestionFunction:
+  UpdateDeviceShadowFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub iot-ingestion-${EnvironmentKey}
-      CodeUri: ../../src/iot-ingestion/
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Timeout: 3
+      FunctionName: !Sub updateDeviceShadow-${EnvironmentKey}
+      CodeUri: ../../src/updateDeviceShadow/
+      Environment:
+        Variables:
+          IOT_ENDPOINT: !Sub "https://${IoTEndpointKey}"
       Role:
-        Fn::ImportValue: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
+        Fn::ImportValue: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
+      Events:
+        StartProcessingQueueTrigger:
+          Type: SQS
+          Properties:
+            Queue:
+              Fn::ImportValue: !Sub StartProcessingQueueArn-${EnvironmentKey}
+            BatchSize: 5
 
-  ## Permiso: permitir que IoT Core invoque la Lambda
-  IoTInvokeLambdaPermission:
-    Type: AWS::Lambda::Permission
+  GetDeviceShadowFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref IoTIngestionFunction
-      Principal: iot.amazonaws.com
-      SourceArn:
-        Fn::ImportValue: !Sub IoTRuleArn-${EnvironmentKey}
+      FunctionName: !Sub getDeviceShadow-${EnvironmentKey}
+      CodeUri: ../../src/getDeviceShadow/
+      Environment:
+        Variables:
+          IOT_ENDPOINT: !Sub "https://${IoTEndpointKey}"
+          DB_SECRET_ARN:
+            Fn::ImportValue: !Sub ParkingDBSecret-${EnvironmentKey}
+          DB_NAME: "parkingdb"
+          DB_HOST:
+            Fn::ImportValue: !Sub ParkingDBEndpoint-${EnvironmentKey}
+      Role:
+        Fn::ImportValue: !Sub GetDeviceShadowLambdaRoleArn-${EnvironmentKey}
+      Layers:
+        - !Ref NodePgLayer
+
+  ## Lambda for handling shadow delta updates
+  ShadowDeltaHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub iotShadowDeltaHandler-${EnvironmentKey}
+      CodeUri: ../../src/iotShadowDeltaHandler/
+      Role:
+        Fn::ImportValue: !Sub ShadowDeltaHandlerRoleArn-${EnvironmentKey}
+
+  ## Lambda for sending SNS email notifications
+  SnsNotifyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub snsNotify-${EnvironmentKey}
+      CodeUri: ../../src/snsNotify/
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN:
+            Fn::ImportValue: !Sub ParkingNotifyTopicArn-${EnvironmentKey}
+      Role:
+        Fn::ImportValue: !Sub SnsNotifyLambdaRoleArn-${EnvironmentKey}
+
+  NodePgLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub node-pg-layer-${EnvironmentKey}
+      Description: PostgreSQL client (pg) for Lambda
+      ContentUri: ../../infrastructure/layers/node-pg
+      CompatibleRuntimes:
+        - nodejs20.x
 
 Outputs:
-  IoTIngestionLambdaArn:
-    Description: ARN of the IoT Ingestion Lambda
-    Value: !GetAtt IoTIngestionFunction.Arn
+  UpdateDeviceShadowFunctionArn:
+    Description: ARN of the UpdateDeviceShadow Lambda
+    Value: !GetAtt UpdateDeviceShadowFunction.Arn
     Export:
-      Name: !Sub IoTIngestionLambdaArn-${EnvironmentKey}
+      Name: !Sub UpdateDeviceShadowFunctionArn-${EnvironmentKey}
+
+  GetDeviceShadowFunctionArn:
+    Description: ARN of the GetDeviceShadow Lambda
+    Value: !GetAtt GetDeviceShadowFunction.Arn
+    Export:
+      Name: !Sub GetDeviceShadowFunctionArn-${EnvironmentKey}
+
+  ShadowDeltaHandlerFunctionArn:
+    Description: ARN of the ShadowDeltaHandler Lambda
+    Value: !GetAtt ShadowDeltaHandlerFunction.Arn
+    Export:
+      Name: !Sub ShadowDeltaHandlerFunctionArn-${EnvironmentKey}
+
+  SnsNotifyFunctionArn:
+    Description: ARN of the SNS Notify Lambda
+    Value: !GetAtt SnsNotifyFunction.Arn
+    Export:
+      Name: !Sub SnsNotifyFunctionArn-${EnvironmentKey}

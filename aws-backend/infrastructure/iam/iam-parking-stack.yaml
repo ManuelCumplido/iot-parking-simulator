@@ -1,3 +1,9 @@
+# SAM Template: IAM Roles for Parking Simulator
+# Provisions IAM roles for Lambda functions and Step Functions used in the IoT Parking demo.
+# Includes roles for:
+# 1. IoTIngestionLambdaRole – grants access to Secrets Manager and RDS.
+# 2. StepFunctionExecutionRole – allows Step Functions to invoke Lambda functions.
+
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: IAM roles for Parking Simulator
@@ -10,12 +16,14 @@ Parameters:
       - dev
       - staging
       - prod
+    Description: Environment where this stack is deployed (dev/staging/prod)
 
 Resources:
   ## Role for IoT Ingestion Lambda
   IoTIngestionLambdaRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub iot-ingestion-lambda-role-${EnvironmentKey}
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -25,7 +33,7 @@ Resources:
             Action: sts:AssumeRole
       Path: /
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole # logs
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole # Allows logs to CloudWatch
       Policies:
         - PolicyName: SecretsAndRDSAccess
           PolicyDocument:
@@ -38,9 +46,184 @@ Resources:
                   - rds-data:BatchExecuteStatement
                 Resource: "*"
 
+  ## Role for Step Function to invoke Lambdas and interact with SQS
+  StepFunctionExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub stepfunction-parking-role-${EnvironmentKey}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      Policies:
+        - PolicyName: StepFunctionCorePermissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: "*"
+
+  ## Role for UpdateDeviceShadow Lambda
+  UpdateDeviceShadowLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub update-device-shadow-lambda-role-${EnvironmentKey}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        # Allows Lambda to write logs to CloudWatch
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: IoTUpdateShadowAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iot:UpdateThingShadow
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: "*"
+
+  ## Role for GetDeviceShadow Lambda
+  GetDeviceShadowLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub get-device-shadow-lambda-role-${EnvironmentKey}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        # Allows Lambda to write logs to CloudWatch
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: IoTGetShadowAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iot:GetThingShadow
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:parkingdb-db-credentials-${EnvironmentKey}-*
+
+  ## Role for Shadow Delta Handler Lambda
+  ShadowDeltaHandlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub shadow-delta-handler-role-${EnvironmentKey}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: IoTShadowDeltaAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iot:UpdateThingShadow
+                Resource: "*"
+
+  ## Role for SNS Notify Lambda
+  SnsNotifyLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub sns-notify-lambda-role-${EnvironmentKey}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        # Basic permissions to write logs to CloudWatch
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SnsPublishPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource:
+                  Fn::ImportValue: !Sub ParkingNotifyTopicArn-${EnvironmentKey}
+
 Outputs:
   IoTIngestionLambdaRoleArn:
     Description: ARN of the IAM Role for IoT ingestion Lambda
     Value: !GetAtt IoTIngestionLambdaRole.Arn
     Export:
       Name: !Sub IoTIngestionLambdaRoleArn-${EnvironmentKey}
+
+  StepFunctionExecutionRoleArn:
+    Description: ARN of the IAM Role for Step Function execution
+    Value: !GetAtt StepFunctionExecutionRole.Arn
+    Export:
+      Name: !Sub StepFunctionExecutionRoleArn-${EnvironmentKey}
+
+  UpdateDeviceShadowLambdaRoleArn:
+    Description: ARN of the IAM Role for UpdateDeviceShadow Lambda
+    Value: !GetAtt UpdateDeviceShadowLambdaRole.Arn
+    Export:
+      Name: !Sub UpdateDeviceShadowLambdaRoleArn-${EnvironmentKey}
+
+  GetDeviceShadowLambdaRoleArn:
+    Description: ARN of the IAM Role for GetteDeviceShadow Lambda
+    Value: !GetAtt GetDeviceShadowLambdaRole.Arn
+    Export:
+      Name: !Sub GetDeviceShadowLambdaRoleArn-${EnvironmentKey}
+
+  ShadowDeltaHandlerRoleArn:
+    Description: ARN of the SNS Notify Lambda Role
+    Value: !GetAtt ShadowDeltaHandlerRole.Arn
+    Export:
+      Name: !Sub ShadowDeltaHandlerRoleArn-${EnvironmentKey}
+
+  SnsNotifyLambdaRoleArn:
+    Description: ARN of the SNS Notify Lambda Role
+    Value: !GetAtt SnsNotifyLambdaRole.Arn
+    Export:
+      Name: !Sub SnsNotifyLambdaRoleArn-${EnvironmentKey}
+
